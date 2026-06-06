@@ -229,7 +229,8 @@ td select option{background:var(--panel)}
               <div class="f fw"><label>Quest Title &nbsp;<span id="b-name" class="badge bi"></span></label>
                 <input id="f-tname" type="text" oninput="updateBadge('tname','name',28)"></div>
               <div class="f fw"><label>Success Condition &nbsp;<span id="b-success" class="badge bi"></span></label>
-                <input id="f-tsuccess" type="text" oninput="updateBadge('tsuccess','success',56)"></div>
+                <textarea id="f-tsuccess" rows="2"
+            oninput="updateBadge('tsuccess','success',56)"></textarea><span class="hint">Use \n for multiple lines (e.g. "Slay Tigrex\nDeliver Paw Pass Ticket")</span></div>
               <div class="f fw"><label>Failure Text &nbsp;<span id="b-failure" class="badge bi"></span></label>
                 <textarea id="f-tfailure" rows="2" oninput="updateBadge('tfailure','failure',56)"></textarea>
                 <span class="hint">Use \n for line breaks (e.g. "Reward Zero\nTime Over")</span></div>
@@ -476,14 +477,20 @@ function parseFile(d){
   ptrs.smMixedFish   = ru32(d,monSettingsPtr+8);   // MixedFishPtr
   ptrs.smAppearance  = ru32(d,monSettingsPtr+12);  // AppearanceDetailsPtr
   smSlotEntries=[];
-  for(let i=0;i<4;i++) smSlotEntries.push({off:ptrs.smMixedFish+i*4, id:ru32(d,ptrs.smMixedFish+i*4)});
+  // Guard: only read small monster slots if pointer is valid (non-zero and within file)
+  if(ptrs.smMixedFish > 0 && ptrs.smMixedFish + 16 <= d.length){
+    for(let i=0;i<4;i++) smSlotEntries.push({off:ptrs.smMixedFish+i*4, id:ru32(d,ptrs.smMixedFish+i*4)});
+  }
   smAppearEntries=[];
-  let smOff=ptrs.smAppearance;
-  while(smOff+2<=d.length){
-    const smid=ru16(d,smOff);
-    if(smid===0xFFFF)break;
-    smAppearEntries.push({off:smOff, raw:Array.from(d.slice(smOff,smOff+60))});
-    smOff+=60;
+  // Guard: only read small monster appearance data if pointer is valid (non-zero and within file)
+  if(ptrs.smAppearance > 0 && ptrs.smAppearance + 2 <= d.length){
+    let smOff=ptrs.smAppearance;
+    while(smOff+2<=d.length){
+      const smid=ru16(d,smOff);
+      if(smid===0xFFFF)break;
+      smAppearEntries.push({off:smOff, raw:Array.from(d.slice(smOff,smOff+60))});
+      smOff+=60;
+    }
   }
 }
 
@@ -1060,11 +1067,20 @@ function applyChanges() {
     if(el)el.textContent=MONSTERS[id]||'— empty —';
   });
 
-  // Boss appearance details — relocate block to safe region (ptrs.boss+16) and write all active rows
-  // Active = ID field is non-zero. Empty rows (ID=0) are skipped so end marker is placed correctly.
-  const bossWriteBase = ptrs.boss + 16; // safe area in zero-padding after boss header
-  let bossWriteOff = bossWriteBase;
+  // Boss appearance details — write back in-place to original bossAppearPtr location.
+  // Only relocate if there is no valid original pointer (bossAppearPtr === 0).
+  // This prevents corrupting the pointer and avoids writing duplicate data.
   const buf4=new ArrayBuffer(4);const dv4=new DataView(buf4);
+  let bossWriteOff;
+  if(bossAppearPtr > 0){
+    // Write in-place at original location
+    bossWriteOff = bossAppearPtr;
+  } else {
+    // No original pointer — use the safe padding area after the boss block header
+    bossWriteOff = ptrs.boss + 16;
+    wu32(d, ptrs.boss+12, bossWriteOff);
+  }
+  const bossWriteStart = bossWriteOff;
   document.querySelectorAll('#tb-bossdetail tr').forEach(tr=>{
     const id   =parseInt(tr.querySelector('[data-f="id"]').value.replace(/^0x/i,'')||'0',16);
     if(!id) return; // skip empty slot
@@ -1095,28 +1111,31 @@ function applyChanges() {
   });
   // Write end marker
   wu16(d, bossWriteOff, 0xFFFF);
-  // Update AppearanceDetailsPtr in boss block to point to new location
-  wu32(d, ptrs.boss+12, bossWriteBase);
-  // Update bossAppearEntries to reflect new offsets for future saves
+  // Update bossAppearEntries to reflect offsets for future saves
   bossAppearEntries=[];
-  let bossReScan=bossWriteBase;
+  let bossReScan=bossWriteStart;
   while(bossReScan<bossWriteOff){
     bossAppearEntries.push({off:bossReScan, raw:Array.from(d.slice(bossReScan,bossReScan+60))});
     bossReScan+=60;
   }
 
   // Small monster slots write-back
-  document.querySelectorAll('#tb-sm-slots tr').forEach(tr=>{
-    const i=parseInt(tr.querySelector('input').dataset.smslot);
-    const id=parseInt(tr.querySelector('input').value.replace(/^0x/i,'')||'0',16)>>>0;
-    wu32(d,ptrs.smMixedFish+i*4,id);
-    smSlotEntries[i].id=id;
-    const el=document.getElementById('smslot-dec'+i);
-    if(el)el.textContent=id===0xFFFFFFFF?'— empty —':id;
-  });
+  // Guard: only write if pointer is valid (non-zero)
+  if(ptrs.smMixedFish > 0){
+    document.querySelectorAll('#tb-sm-slots tr').forEach(tr=>{
+      const i=parseInt(tr.querySelector('input').dataset.smslot);
+      const id=parseInt(tr.querySelector('input').value.replace(/^0x/i,'')||'0',16)>>>0;
+      wu32(d,ptrs.smMixedFish+i*4,id);
+      smSlotEntries[i].id=id;
+      const el=document.getElementById('smslot-dec'+i);
+      if(el)el.textContent=id===0xFFFFFFFF?'— empty —':id;
+    });
+  }
 
   // Small monster appearance details write-back
-  document.querySelectorAll('#tb-sm-detail tr').forEach(tr=>{
+  // Guard: only write if pointer is valid (non-zero) and entries exist
+  if(ptrs.smAppearance > 0){
+    document.querySelectorAll('#tb-sm-detail tr').forEach(tr=>{
     const ei=parseInt(tr.querySelector('[data-sm]').dataset.sm);
     if(ei>=smAppearEntries.length)return;
     const soff=smAppearEntries[ei].off;
@@ -1145,7 +1164,8 @@ function applyChanges() {
     // soff+46,+47 = FSkip(2)
     wu16(d,soff+48,size);
     wu16(d,soff+50,hp);
-  });
+    });
+  } // end guard: ptrs.smAppearance > 0
 
   renderHex(D);
 }
