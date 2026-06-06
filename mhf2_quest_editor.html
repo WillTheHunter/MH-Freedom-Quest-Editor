@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MHF2 Quest Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
+:root{
+  --bg:#0d0f12;--surface:#141720;--panel:#191c27;--border:#252a3a;
+  --accent:#e8a020;--accent2:#b84010;--text:#cfc5a8;--muted:#5c6278;
+  --danger:#b03030;--success:#2a8a4a;
+  --mono:'Share Tech Mono',monospace;--sans:'Rajdhani',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh}
+#header{background:var(--surface);border-bottom:2px solid var(--accent2);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px #0008}
+#header h1{font-weight:700;font-size:20px;letter-spacing:3px;text-transform:uppercase;color:var(--accent)}
+.sub{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.spacer{flex:1}
+button{font-family:var(--sans);font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;border-radius:3px;padding:7px 16px;font-size:13px;transition:all .15s}
+.btn-primary{background:var(--accent2);color:#fff}.btn-primary:hover{background:var(--accent);color:#000}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--accent);border-color:var(--accent)}
+.btn-danger{background:var(--danger);color:#fff;padding:3px 9px;font-size:11px}.btn-danger:hover{filter:brightness(1.3)}
+.btn-add{background:transparent;color:var(--success);border:1px solid var(--success);padding:5px 12px;font-size:12px}.btn-add:hover{background:rgba(42,138,74,.15)}
+#app{display:flex;height:calc(100vh - 54px)}
+#sidebar{width:180px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;padding:10px 0;overflow-y:auto}
+.nav-item{padding:8px 16px;cursor:pointer;font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:12px;color:var(--muted);border-left:3px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-item:hover{color:var(--text);background:var(--panel)}.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--panel)}
+.nav-sep{height:1px;background:var(--border);margin:6px 12px}
+#main{flex:1;overflow-y:auto;padding:18px;padding-bottom:50px}
+#dropzone{border:2px dashed var(--border);border-radius:8px;padding:50px 40px;text-align:center;cursor:pointer;transition:all .2s;margin:30px auto;max-width:500px}
+#dropzone:hover,#dropzone.drag-over{border-color:var(--accent);background:rgba(232,160,32,.05)}
+#dropzone .ico{font-size:44px;margin-bottom:14px}#dropzone h2{font-size:19px;color:var(--accent);margin-bottom:8px}
+#dropzone p{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.6}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:5px;margin-bottom:14px;overflow:hidden}
+.card-hdr{background:var(--surface);padding:8px 14px;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--border)}
+.card-body{padding:14px}
+.note{font-size:12px;color:var(--muted);padding:7px 14px;border-bottom:1px solid var(--border);line-height:1.5}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px}
+.fg3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:3px;padding:6px 9px;font-family:var(--sans);font-size:14px;transition:border-color .15s;width:100%}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent)}
+.f select option{background:var(--panel)}.f textarea{resize:vertical;min-height:80px;font-size:13px}
+.f .hint{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.fw{grid-column:1/-1}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surface);color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:10px;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-family:var(--mono)}
+td{padding:5px 8px;border-bottom:1px solid rgba(37,42,58,.7);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+td input,td select{background:transparent;border:1px solid transparent;color:var(--text);font-family:var(--mono);font-size:13px;padding:3px 6px;border-radius:3px;width:100%}
+td input:focus,td select:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+td select option{background:var(--panel)}
+.badge{display:inline-block;padding:1px 7px;border-radius:2px;font-size:11px;font-family:var(--mono)}
+.bi{background:rgba(40,114,168,.15);color:#4898d8;border:1px solid rgba(40,114,168,.3)}
+.bw{background:rgba(232,160,32,.15);color:var(--accent);border:1px solid rgba(232,160,32,.3)}
+.be{background:rgba(176,48,48,.15);color:#d06060;border:1px solid rgba(176,48,48,.3)}
+#save-bar{background:rgba(184,64,16,.12);border:1px solid rgba(184,64,16,.4);border-radius:4px;padding:10px 14px;display:none;align-items:center;gap:12px;margin-bottom:14px}
+#save-bar span{flex:1;color:var(--accent);font-weight:600;font-size:14px}
+#hex-view{font-family:var(--mono);font-size:11px;white-space:pre;overflow-x:auto;background:var(--bg);padding:10px;border-radius:4px;border:1px solid var(--border);max-height:500px;overflow-y:auto;color:#6a8a5a;line-height:1.6}
+.ho{color:var(--muted);user-select:none}.ha{color:#607888;margin-left:6px}.hh{color:var(--accent)}
+#statusbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:5px 18px;display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;color:var(--muted);z-index:200}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;flex-shrink:0}
+.sdot.ok{background:var(--success)}.sdot.dirty{background:var(--accent)}.sdot.err{background:var(--danger)}
+.warn-hint{font-size:11px;color:#d06060;font-family:var(--mono);margin-top:2px;display:none}
+/* Combobox: select + custom input overlay */
+.combo-wrap{position:relative;display:flex;flex-direction:column;gap:0}
+.combo-wrap select{padding-right:60px}
+.combo-custom{display:none;background:var(--bg);border:1px solid var(--accent);border-top:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:4px 8px;border-radius:0 0 3px 3px;width:100%}
+.combo-custom:focus{outline:none}
+.combo-toggle{position:absolute;right:28px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:2px 4px;letter-spacing:0;text-transform:none;font-family:var(--mono)}
+.combo-toggle:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="header">
+  <div><h1>MHF2 Quest Editor</h1><div class="sub" id="hdr-sub">Monster Hunter Freedom 2 · Binary Quest Editor v3</div></div>
+  <div class="spacer"></div>
+  <button class="btn-ghost" id="btn-open" style="display:none" onclick="document.getElementById('fi').click()">📂 Open</button>
+  <button class="btn-primary" id="btn-save" style="display:none" onclick="doSave()">💾 Export</button>
+  <input type="file" id="fi" style="display:none" accept="*/*">
+</div>
+<div id="app">
+  <div id="sidebar">
+    <div class="nav-item active" data-tab="info">⚙️ Quest Info</div>
+    <div class="nav-item" data-tab="spawn">🗺️ Spawn &amp; State</div>
+    <div class="nav-item" data-tab="text">📝 Text Fields</div>
+    <div class="nav-item" data-tab="targets">🎯 Targets</div>
+    <div class="nav-item" data-tab="supply">🎒 Supply Box</div>
+    <div class="nav-item" data-tab="rewards">💰 Rewards</div>
+    <div class="nav-item" data-tab="boss">🐉 Boss Spawns</div>
+    <div class="nav-item" data-tab="smallmon">🐾 Small Monsters</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" data-tab="hex">🔢 Hex View</div>
+  </div>
+  <div id="main">
+    <div id="dz-wrap">
+      <div id="dropzone">
+        <div class="ico">🗡️</div>
+        <h2>Load MHF2 Quest File</h2>
+        <p>Drop your quest binary here, or click Browse.<br>Works with any extension: <b>none · .bin · .mib</b></p>
+        <button class="btn-primary" onclick="document.getElementById('fi').click()">Browse File…</button>
+      </div>
+    </div>
+    <div id="editor" style="display:none">
+      <div id="save-bar">
+        <span>⚠️ Unsaved changes</span>
+        <button class="btn-primary" onclick="doSave()">💾 Export / Download</button>
+      </div>
+
+      <!-- QUEST INFO -->
+      <div class="tab-panel active" id="tab-info">
+        <div class="card">
+          <div class="card-hdr">⚙️ Quest Parameters</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Quest Number</label><input id="f-qnum" type="number" min="0" max="65535"></div>
+              <div class="f"><label>Star Level</label><input id="f-star" type="number" min="1" max="10"></div>
+              <div class="f"><label>Quest Type (TaskType)</label>
+                <select id="f-qtype">
+                  <option value="1">0x01 – Slay</option>
+                  <option value="2">0x02 – Gather</option>
+                  <option value="4">0x04 – Hunt</option>
+                  <option value="8">0x08 – Special</option>
+                  <option value="16">0x10 – Treasure Hunt</option>
+                  <option value="129">0x81 – Slay [Elder Dragon]</option>
+                  <option value="136">0x88 – Special [Elder Dragon]</option>
+                </select>
+              </div>
+              <div class="f"><label>Additional (quest flags)</label><input id="f-additional" type="text" placeholder="0x00" style="font-family:var(--mono)"></div>
+              <div class="f"><label>Stage / Map</label><select id="f-mapid"></select></div>
+              <div class="f"><label>Special Conditions</label><input id="f-speccond" type="text" placeholder="0x00" style="font-family:var(--mono)"></div>
+              <div class="f"><label>Target Count</label><input id="f-targetcount" type="number" min="0" max="2">
+                <span class="hint">1=target0 only, 2=both targets</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">💰 Economy</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Contract Fee (z)</label><input id="f-fee" type="number" min="0" max="99999"></div>
+              <div class="f"><label>Reward Money (z)</label><input id="f-reward" type="number" min="0" max="9999999"></div>
+              <div class="f">
+                <label>Cart Penalty (z)</label>
+                <input id="f-penalty" type="number" min="0" max="9999999">
+                <span class="warn-hint" id="penalty-hint">⚠️ Invalid value in file (event quest?) — shown as 0</span>
+              </div>
+              <div class="f"><label>Guild Points</label><input id="f-gp" type="number" min="0" max="99999"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">⏱ Time &amp; Difficulty</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Quest Time (minutes)</label><input id="f-time" type="number" min="1" max="999" step="0.5"><span class="hint" id="time-raw"></span></div>
+              <div class="f"><label>Carving Difficulty</label>
+                <select id="f-carve">
+                  <option value="0">0 – Easy</option><option value="1">1 – Low Rank</option>
+                  <option value="2">2 – High Rank</option><option value="3">3 – Treasure Hunt</option>
+                  <option value="4">4 – Training</option>
+                </select>
+              </div>
+              <div class="f"><label>Difficulty</label>
+                <select id="f-difficulty">
+                  <option value="0">0 – Normal</option><option value="1">1 – Weakened</option><option value="2">2 – Strengthened</option>
+                </select>
+              </div>
+              <div class="f"><label>Arrival Position</label>
+                <select id="f-arrive">
+                  <option value="0">0 – Camp</option><option value="1">1 – Random</option><option value="2">2 – Special (Cutscene)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">🏔️ Boss Size &amp; Shape</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Monster Size <span class="hint" style="font-size:10px">(stored as hex)</span></label><input id="f-bshape" type="number" min="0" max="65535" placeholder="107" oninput="document.getElementById('bshape-hex').textContent='0x'+(parseInt(this.value)||0).toString(16).toUpperCase().padStart(4,'0')"><span class="hint" id="bshape-hex"></span></div>
+              <div class="f"><label>Size Table %</label><input id="f-bsize" type="number" min="0" max="255"></div>
+              <div class="f"><label>Boss Strength (0–15)</label><input id="f-bstr" type="number" min="0" max="15"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPAWN & STATE -->
+      <div class="tab-panel" id="tab-spawn">
+        <div class="card">
+          <div class="card-hdr">📦 Supply State</div>
+          <div class="note">Controls when supply items appear in the box.</div>
+          <div class="card-body">
+            <div class="fg3">
+              <div class="f"><label>Rationing Mode</label>
+                <select id="f-ratmode">
+                  <option value="0">0 – Immediate</option><option value="1">1 – Random</option><option value="2">2 – On Kill</option>
+                </select>
+              </div>
+              <div class="f"><label>Rationing Conditions</label><input id="f-ratcond" type="text" placeholder="0x00" style="font-family:var(--mono)"><span class="hint">Monster code when mode=2</span></div>
+              <div class="f"><label>Condition Quantity</label><input id="f-ratqty" type="number" min="0" max="255"><span class="hint">Monster qty when mode=2</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">🔄 Small Monster Changes (questAreaChange)</div>
+          <div class="note">Triggers that swap small monster configurations mid-quest. ChangeCondition: 0=None, 1=On Kill, 2=On Gather.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Change Condition</th><th>Target ID (hex)</th><th>Qty</th><th>Sequence #</th></tr></thead>
+              <tbody id="tb-qac"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEXT FIELDS -->
+      <div class="tab-panel" id="tab-text">
+        <div class="card">
+          <div class="card-hdr">📝 Quest Text</div>
+          <div class="note">Strings are written in-place up to their current allocation. If you need more space, the tool will <b>relocate</b> the string within its global max (title≤28, success/fail/monster≤56, detail≤200, client≤28 bytes). Newlines: use <code>\n</code> in the textarea — it is stored as byte 0x0A.</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f fw"><label>Quest Title &nbsp;<span id="b-name" class="badge bi"></span></label>
+                <input id="f-tname" type="text" oninput="updateBadge('tname','name',28)"></div>
+              <div class="f fw"><label>Success Condition &nbsp;<span id="b-success" class="badge bi"></span></label>
+                <input id="f-tsuccess" type="text" oninput="updateBadge('tsuccess','success',56)"></div>
+              <div class="f fw"><label>Failure Text &nbsp;<span id="b-failure" class="badge bi"></span></label>
+                <textarea id="f-tfailure" rows="2" oninput="updateBadge('tfailure','failure',56)"></textarea>
+                <span class="hint">Use \n for line breaks (e.g. "Reward Zero\nTime Over")</span></div>
+              <div class="f fw"><label>Main Monster / Sub-header &nbsp;<span id="b-monster" class="badge bi"></span></label>
+                <textarea id="f-tmonster" rows="2" oninput="updateBadge('tmonster','monster',56)"></textarea>
+                <span class="hint">Use \n for multiple lines (e.g. "Rathalos\nRathian")</span></div>
+              <div class="f fw"><label>Client Name &nbsp;<span id="b-client" class="badge bi"></span></label>
+                <input id="f-tclient" type="text" oninput="updateBadge('tclient','client',28)"></div>
+              <div class="f fw"><label>Quest Description &nbsp;<span id="b-desc" class="badge bi"></span></label>
+                <textarea id="f-tdesc" rows="6" oninput="updateBadge('tdesc','desc',200)"></textarea>
+                <span class="hint">Use \n for line breaks</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARGETS -->
+      <div class="tab-panel" id="tab-targets">
+        <div class="card">
+          <div class="card-hdr">🎯 Quest Targets</div>
+          <div class="note">Condition: 1=Slay, 2=Deliver, 4=Slay[Elder Dragon]. Additional: when cond=4, 0x0180=inherited HP.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Condition</th><th>Additional (hex)</th><th>Target ID (hex)</th><th>Known As</th><th>Quantity</th></tr></thead>
+              <tbody id="tb-targets"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPPLY -->
+      <div class="tab-panel" id="tab-supply">
+        <div class="card">
+          <div class="card-hdr">🎒 Supply Box Items</div>
+          <div class="note">Terminated by 0x0000 (2 bytes only). Max ~30 items. Item IDs in hex.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Item ID (hex)</th><th>Quantity</th><th></th></tr></thead>
+              <tbody id="tb-supply"></tbody>
+            </table>
+            <button class="btn-add" style="margin-top:10px" onclick="addSupplyRow()">+ Add Item</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REWARDS -->
+      <div class="tab-panel" id="tab-rewards">
+        <div class="card">
+          <div class="card-hdr">💰 Quest Reward Blocks</div>
+          <div class="note">Each block has a condition code and a list of entries. Probabilities per block should sum to ~100. Item IDs in hex.</div>
+          <div id="rewards-body"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <button class="btn-add" onclick="addRewardBlock()">+ Add Reward Block</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOSS -->
+      <div class="tab-panel" id="tab-boss">
+        <div class="card">
+          <div class="card-hdr">🐉 Boss Spawn Slots (MixedBossPtr)</div>
+          <div class="note">4 slots in the MixedBossPtr array. 0xFFFFFFFF = empty.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Slot</th><th>Monster ID (hex)</th><th>Known Name</th></tr></thead>
+              <tbody id="tb-boss"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">📍 Boss Appearance Details (AppearanceDetailsPtr)</div>
+          <div class="note">Per-slot spawn details: 60 bytes each. ID must match one of the MixedBossPtr values. ExitArea = area where boss initially spawns.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>ID (hex)</th><th>State</th><th>Count</th><th>ExitArea</th><th>X</th><th>Z</th><th>Y</th><th>Orientation</th><th>SeqNum</th><th>Size</th><th>HP</th></tr></thead>
+              <tbody id="tb-bossdetail"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.9">
+            <b style="color:var(--text)">Monster IDs:</b><br>
+            0x01=Rathian &nbsp;0x02=Fatalis &nbsp;0x06=Yian Kut-Ku &nbsp;0x08=Cephadrome &nbsp;0x0B=Rathalos &nbsp;0x0E=Diablos &nbsp;0x0F=Khezu<br>
+            0x11=Gravios &nbsp;0x14=Gypceros &nbsp;0x15=Plesioth &nbsp;0x1A=Monoblos &nbsp;0x1B=Velocidrome &nbsp;0x1C=Gendrome &nbsp;0x1F=Iodrome<br>
+            0x21=Kirin &nbsp;0x25=Pink Rathian &nbsp;0x28=Yian Garuga &nbsp;0x29=Silver Rathalos &nbsp;0x2A=Gold Rathian &nbsp;0x2B=Black Diablos<br>
+            0x2D=Red Khezu &nbsp;0x2F=Black Gravios &nbsp;0x30=Daimyo Hermitaur &nbsp;0x31=Azure Rathalos &nbsp;0x33=Blangonga &nbsp;0x34=Congalala<br>
+            0x35=Rajang &nbsp;0x36=Kushala Daora &nbsp;0x3A=Yama Tsukami &nbsp;0x3B=Chameleos &nbsp;0x40=Lunastra &nbsp;0x41=Teostra<br>
+            0x43=Shogun Ceanataur &nbsp;0x4B=Tigrex &nbsp;0x4C=Akantor &nbsp;0x51=Nargacuga &nbsp;0x52=Hypnocatrice &nbsp;0x53=Lavasioth &nbsp;0x58=Ukanlos
+          </div>
+        </div>
+      </div>
+
+      <!-- SMALL MONSTERS -->
+      <div class="tab-panel" id="tab-smallmon">
+        <div class="card">
+          <div class="card-hdr">🐾 Small Monster Spawn IDs</div>
+          <div class="note">Up to 4 monster type slots per area configuration. 0xFFFFFFFF = empty slot. IDs in hex.</div>
+          <div class="card-body">
+            <div id="sm-slots-wrap">
+              <table>
+                <thead><tr><th>Slot</th><th>Monster ID (hex)</th><th>Decimal</th></tr></thead>
+                <tbody id="tb-sm-slots"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">📍 Small Monster Spawn Details</div>
+          <div class="note">Per-entry spawn details: 60 bytes each. ID must match one of the spawn slot IDs. Positions in game units.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>ID (hex)</th><th>State</th><th>Qty</th><th>Act.Mode</th><th>X</th><th>Z</th><th>Y</th><th>Orientation</th><th>SeqNum</th><th>Size</th><th>HP</th></tr></thead>
+              <tbody id="tb-sm-detail"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEX -->
+      <div class="tab-panel" id="tab-hex">
+        <div class="card">
+          <div class="card-hdr">🔢 Hex Dump (first 512 bytes)</div>
+          <div class="card-body" style="padding:8px"><div id="hex-view">Load a file to view hex.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="statusbar">
+  <span class="sdot" id="sdot"></span><span id="stxt">No file loaded</span>
+  <span class="spacer"></span><span id="ssz"></span>
+</div>
+
+<script>
+// ── DATA TABLES ─────────────────────────────────────────────────────────────
+const STAGES = {
+  0:'Fort',1:'Village',2:'ForestHills (Day)',3:'Desert (Day)',4:'Swamp (Day)',
+  5:'Volcano (Day)',6:'Jungle (Day)',7:'Schrade',8:'Battleground',
+  9:'Great Arena',10:'Arena',11:'Snowy Mountain (Day)',12:'Town',
+  13:'Tower 1',14:'Tower 2',15:'Tower 3',16:'ForestHills (Night)',
+  17:'Desert (Night)',18:'Swamp (Night)',19:'Volcano (Night)',20:'Jungle (Night)',
+  21:'Snowy Mountain (Night)',22:'Town (Night)',23:'Fort (Night)',
+  24:'Great Arena (Night)',25:'Arena (Night)'
+};
+const MONSTERS = {
+  0x01:'Rathian',0x02:'Fatalis',0x03:'Kelbi',0x04:'Mosswine',0x05:'Bullfango',
+  0x06:'Yian Kut-Ku',0x07:'Lao Shan Lung',0x08:'Cephadrome',0x09:'Felyne',
+  0x0A:'Veggie Elder',0x0B:'Rathalos',0x0C:'Aptonoth',0x0D:'Genprey',
+  0x0E:'Diablos',0x0F:'Khezu',0x10:'Velociprey',0x11:'Gravios',0x13:'Vespoid',
+  0x14:'Gypceros',0x15:'Plesioth',0x16:'Basarios',0x17:'Melynx',0x18:'Hornetaur',
+  0x19:'Apceros',0x1A:'Monoblos',0x1B:'Velocidrome',0x1C:'Gendrome',
+  0x1E:'Ioprey',0x1F:'Iodrome',0x20:'Poogie',0x21:'Kirin',0x22:'Cephalos',
+  0x23:'Giaprey',0x24:'Crimson Fatalis',0x25:'Pink Rathian',0x26:'Blue Yian Kut-Ku',
+  0x27:'Purple Gypceros',0x28:'Yian Garuga',0x29:'Silver Rathalos',
+  0x2A:'Gold Rathian',0x2B:'Black Diablos',0x2C:'White Monoblos',0x2D:'Red Khezu',
+  0x2E:'Green Plesioth',0x2F:'Black Gravios',0x30:'Daimyo Hermitaur',
+  0x31:'Azure Rathalos',0x32:'Ashen Lao Shan Lung',0x33:'Blangonga',
+  0x34:'Congalala',0x35:'Rajang',0x36:'Kushala Daora',0x37:'Shen Gaoren',
+  0x3A:'Yama Tsukami',0x3B:'Chameleos',0x3C:'Rusted Kushala Daora',
+  0x3D:'Blango',0x3E:'Conga',0x40:'Lunastra',0x41:'Teostra',0x42:'Hermitaur',
+  0x43:'Shogun Ceanataur',0x44:'Bulldrome',0x47:'White Fatalis',0x49:'Ceanataur',
+  0x4B:'Tigrex',0x4C:'Akantor',0x4D:'Giadrome',0x4F:'King Shakalaka',
+  0x50:'Queen Vespoid',0x51:'Nargacuga',0x52:'Hypnocatrice',0x53:'Lavasioth',
+  0x54:'Copper Blangonga',0x55:'Emerald Congalala',0x56:'Plum Daimyo Hermitaur',
+  0x57:'Terra Shogun Ceanataur',0x58:'Ukanlos',0x59:'Golden Rajang',
+  0xFFFFFFFF:'— empty —'
+};
+const MAX_BYTES = {name:28,success:56,failure:56,desc:200,monster:56,client:28};
+
+// ── BINARY HELPERS ───────────────────────────────────────────────────────────
+const ru32=(d,o)=>((d[o]|d[o+1]<<8|d[o+2]<<16|d[o+3]<<24))>>>0;
+const ru16=(d,o)=>(d[o]|d[o+1]<<8)>>>0;
+const ru8=(d,o)=>d[o];
+function wu32(d,o,v){v>>>=0;d[o]=v&255;d[o+1]=(v>>8)&255;d[o+2]=(v>>16)&255;d[o+3]=(v>>24)&255}
+function wu16(d,o,v){d[o]=v&255;d[o+1]=(v>>8)&255}
+function wu8(d,o,v){d[o]=v&255}
+function rstr(d,o){let e=o;while(e<d.length&&d[e])e++;return new TextDecoder().decode(d.slice(o,e))}
+// Convert JS string (with literal \n) to bytes, treating \n as 0x0A
+function strToBytes(s){
+  // textarea gives real newline chars, input fields may have literal \n
+  // normalize: keep real \n, also convert literal backslash-n
+  return new TextEncoder().encode(s);
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let D=null, fname='', isDirty=false;
+let ptrs={}, tptrs={}, tcaps={};   // tcaps = current allocation in file
+let origPenalty=0;
+// Boss appearance details parsed from file (read-only display + write-back)
+let bossAppearEntries=[];  // array of {off, bytes[60]}
+let bossAppearPtr=0, bossEndMarkOff=0;
+// Small monster data
+let smSlotEntries=[], smAppearEntries=[];
+
+// ── PARSE ────────────────────────────────────────────────────────────────────
+function parseFile(d){
+  // Header pointers (template order)
+  ptrs.qi        = ru32(d,0x04);
+  ptrs.supply    = ru32(d,0x08);
+  ptrs.reward    = ru32(d,0x0C);
+  ptrs.fixed     = ru32(d,0x10);
+  ptrs.questarea = ru32(d,0x14);
+  ptrs.boss      = ru32(d,0x18);
+  ptrs.gather    = ru32(d,0x1C);
+  ptrs.unknown   = ru32(d,0x20);
+  ptrs.acqdata   = ru32(d,0x24);
+
+  // Text pointer chain
+  const qi=ptrs.qi;
+  const tcPtr=ru32(d,qi+20);
+  const ecPtr=ru32(d,tcPtr);
+  tptrs.name    = ru32(d,ecPtr);
+  tptrs.success = ru32(d,ecPtr+4);
+  tptrs.failure = ru32(d,ecPtr+8);
+  tptrs.desc    = ru32(d,ecPtr+12);
+  tptrs.monster = ru32(d,ecPtr+16);
+  tptrs.client  = ru32(d,ecPtr+20);
+
+  // Compute current allocations (distance to next neighbour)
+  const sorted=Object.entries(tptrs).sort((a,b)=>a[1]-b[1]);
+  for(let i=0;i<sorted.length;i++){
+    const [k,o]=sorted[i];
+    tcaps[k]=i+1<sorted.length ? sorted[i+1][1]-o : ecPtr-o;
+  }
+
+  // Boss appearance details
+  const bossBase=ptrs.boss;
+  const mixedPtr=ru32(d,bossBase+8);
+  bossAppearPtr=ru32(d,bossBase+12);
+  bossAppearEntries=[];
+  let off=bossAppearPtr;
+  while(off+2<=d.length){
+    const id=ru16(d,off);
+    if(id===0xFFFF){bossEndMarkOff=off;break;}
+    bossAppearEntries.push({off, raw:Array.from(d.slice(off,off+60))});
+    off+=60;
+  }
+
+  // Small monster data
+  // ptrs.questarea → MonsterInformation { MonsterSettingsPtr(u32), Change1Ptr(u32), Change2Ptr(u32) }
+  // MonsterSettingsPtr → RegionalInformation { areaID(u32), skip(u32), MixedFishPtr(u32), AppearanceDetailsPtr(u32) }
+  const qaBase=ptrs.questarea;
+  const monSettingsPtr = ru32(d,qaBase);       // MonsterSettingsPtr
+  ptrs.smMixedFish   = ru32(d,monSettingsPtr+8);   // MixedFishPtr
+  ptrs.smAppearance  = ru32(d,monSettingsPtr+12);  // AppearanceDetailsPtr
+  smSlotEntries=[];
+  for(let i=0;i<4;i++) smSlotEntries.push({off:ptrs.smMixedFish+i*4, id:ru32(d,ptrs.smMixedFish+i*4)});
+  smAppearEntries=[];
+  let smOff=ptrs.smAppearance;
+  while(smOff+2<=d.length){
+    const smid=ru16(d,smOff);
+    if(smid===0xFFFF)break;
+    smAppearEntries.push({off:smOff, raw:Array.from(d.slice(smOff,smOff+60))});
+    smOff+=60;
+  }
+}
+
+// ── STAGE SELECT ─────────────────────────────────────────────────────────────
+function buildStageSelect(){
+  const sel=document.getElementById('f-mapid');
+  sel.innerHTML='';
+  for(const[id,name] of Object.entries(STAGES)){
+    const o=document.createElement('option');
+    o.value=id; o.textContent=`0x${(+id).toString(16).toUpperCase().padStart(2,'0')} – ${name}`;
+    sel.appendChild(o);
+  }
+}
+
+// ── POPULATE UI ──────────────────────────────────────────────────────────────
+function populateUI(d){
+  const qi=ptrs.qi;
+
+  // Quest Info
+  document.getElementById('f-qnum').value     = ru16(d,qi+24);
+  document.getElementById('f-star').value     = ru8(d,qi+26);
+  document.getElementById('f-qtype').value    = ru8(d,qi);
+  document.getElementById('f-additional').value = '0x'+ru8(d,qi+1).toString(16).padStart(2,'0');
+  document.getElementById('f-mapid').value    = ru8(d,qi+28);
+  document.getElementById('f-speccond').value = '0x'+ru8(d,qi+29).toString(16).padStart(2,'0');
+  document.getElementById('f-targetcount').value = ru8(d,qi+30);
+  document.getElementById('f-fee').value      = ru32(d,qi+4);
+  document.getElementById('f-reward').value   = ru32(d,qi+8);
+  origPenalty=ru16(d,qi+12);
+  document.getElementById('f-penalty').value  = origPenalty;
+  document.getElementById('penalty-hint').style.display = 'none';
+  document.getElementById('f-gp').value       = ru32(d,0x2C);
+  const qt=ru32(d,qi+16);
+  document.getElementById('f-time').value     = (qt/1800).toFixed(2);
+  document.getElementById('time-raw').textContent = 'raw ticks: '+qt;
+  document.getElementById('f-carve').value    = ru8(d,0x34);
+  document.getElementById('f-difficulty').value = ru8(d,0x39);
+  document.getElementById('f-arrive').value   = ru8(d,0x35);
+  const bshapeVal = ru16(d,0x28);
+  document.getElementById('f-bshape').value   = bshapeVal;
+  document.getElementById('bshape-hex').textContent = '0x'+bshapeVal.toString(16).toUpperCase().padStart(4,'0');
+  document.getElementById('f-bsize').value    = ru8(d,0x2A);
+  document.getElementById('f-bstr').value     = ru8(d,0x2B);
+
+  // Supply state (header 0x36-0x38)
+  document.getElementById('f-ratmode').value  = ru8(d,0x36);
+  document.getElementById('f-ratcond').value  = '0x'+ru8(d,0x37).toString(16).padStart(2,'0');
+  document.getElementById('f-ratqty').value   = ru8(d,0x38);
+
+  // questAreaChange[0] at 0x3C, [1] at 0x44
+  const qac=[{o:0x3C},{o:0x44}];
+  const tb=document.getElementById('tb-qac');
+  tb.innerHTML='';
+  qac.forEach(({o},i)=>{
+    const cc=ru32(d,o), tid=ru16(d,o+4), qty=ru8(d,o+6), num=ru8(d,o+7);
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      `<td style="color:var(--muted);font-family:var(--mono)">${i}</td>`+
+      `<td><select data-qac="${i}" data-f="cc"><option value="0"${cc===0?' selected':''}>0 – None</option><option value="1"${cc===1?' selected':''}>1 – On Kill</option><option value="2"${cc===2?' selected':''}>2 – On Gather</option></select></td>`+
+      `<td><input type="text" data-qac="${i}" data-f="tid" value="0x${tid.toString(16).padStart(4,'0')}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="number" data-qac="${i}" data-f="qty" value="${qty}" min="0" max="255"></td>`+
+      `<td><input type="number" data-qac="${i}" data-f="num" value="${num}" min="0" max="255"></td>`;
+    tb.appendChild(tr);
+  });
+
+  // Text fields
+  // Display real \n (0x0A) as actual newlines in textareas
+  function showStr(key){ return rstr(d,tptrs[key]); }
+  document.getElementById('f-tname').value    = showStr('name');
+  document.getElementById('f-tsuccess').value = showStr('success');
+  document.getElementById('f-tfailure').value = showStr('failure');
+  document.getElementById('f-tmonster').value = showStr('monster');
+  document.getElementById('f-tclient').value  = showStr('client');
+  document.getElementById('f-tdesc').value    = showStr('desc');
+  ['tname','tsuccess','tfailure','tmonster','tclient','tdesc'].forEach(id=>{
+    const key=id.replace('t','');
+    updateBadge(id,key,MAX_BYTES[key]);
+  });
+
+  // Targets — template: cond(u8)+add(u16)+skip(1)+id(u16)+qty(u16) = 8 bytes each
+  const tbt=document.getElementById('tb-targets');
+  tbt.innerHTML='';
+  [0,1].forEach(i=>{
+    const base=qi+32+i*8;
+    const cond=ru8(d,base), add=ru16(d,base+1), id=ru16(d,base+4), qty=ru16(d,base+6);
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      `<td style="color:var(--muted);font-family:var(--mono)">${i}</td>`+
+      `<td><select data-ti="${i}" data-f="cond"><option value="0"${cond===0?' selected':''}>0 – None</option><option value="1"${cond===1?' selected':''}>1 – Slay</option><option value="2"${cond===2?' selected':''}>2 – Deliver</option><option value="4"${cond===4?' selected':''}>4 – Slay[Elder]</option></select></td>`+
+      `<td><input type="text" data-ti="${i}" data-f="add" value="0x${add.toString(16).padStart(4,'0')}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="text" data-ti="${i}" data-f="id" value="0x${id.toString(16).padStart(4,'0')}" oninput="updateTargetName(this)"></td>`+
+      `<td style="font-family:var(--mono);font-size:12px;color:var(--muted)" id="tname${i}">${MONSTERS[id]||'?'}</td>`+
+      `<td><input type="number" data-ti="${i}" data-f="qty" value="${qty}" min="0" max="9999"></td>`;
+    tbt.appendChild(tr);
+  });
+
+  // Supply
+  populateSupply(d);
+
+  // Rewards — fully editable
+  renderRewards(readRewardBlocks(d));
+
+  // Boss – MixedBossPtr slots — always show all 4 regardless of content
+  const mixedPtr=ru32(d,ptrs.boss+8);
+  const btb=document.getElementById('tb-boss');
+  btb.innerHTML='';
+  for(let i=0;i<4;i++){
+    const id=ru32(d,mixedPtr+i*4);
+    const isEmpty=id===0xFFFFFFFF;
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      `<td style="color:var(--muted);font-family:var(--mono)">${i}</td>`+
+      `<td><input type="text" data-bslot="${i}" value="0x${id.toString(16).padStart(8,'0').toUpperCase()}" oninput="updateBossName(this)" style="font-family:var(--mono)"></td>`+
+      `<td style="font-family:var(--mono);font-size:12px;color:var(--muted)" id="bname${i}">${isEmpty?'— empty —':(MONSTERS[id]||'unknown')}</td>`;
+    btb.appendChild(tr);
+  }
+
+  // Boss appearance details — always show 4 rows (matching 4 MixedBossPtr slots)
+  const dbt=document.getElementById('tb-bossdetail');
+  dbt.innerHTML='';
+  for(let ei=0;ei<4;ei++){
+    const entry=bossAppearEntries[ei];
+    let id=0,state=0,num=1,exit_=0,xv=0,zv=0,yv=0,orient=0,seq=0,size=0,hp=0;
+    const isEmpty=!entry;
+    if(entry){
+      const e=entry.raw;
+      id    =e[0]|e[1]<<8;
+      state =e[2]|e[3]<<8;
+      num   =e[4];
+      exit_ =e[7];
+      xv=new DataView(new Uint8Array(e.slice(32,36)).buffer).getFloat32(0,true);
+      zv=new DataView(new Uint8Array(e.slice(36,40)).buffer).getFloat32(0,true);
+      yv=new DataView(new Uint8Array(e.slice(40,44)).buffer).getFloat32(0,true);
+      orient=e[28]|e[29]<<8|e[30]<<16|e[31]<<24;
+      seq   =e[44]|e[45]<<8;
+      size  =e[48]|e[49]<<8;
+      hp    =e[50]|e[51]<<8;
+    }
+    const tr=document.createElement('tr');
+    tr.style.opacity=isEmpty?'0.45':'1';
+    tr.innerHTML=
+      `<td style="color:var(--muted);font-family:var(--mono)">${ei}${isEmpty?' <span style=\"font-size:10px;color:var(--muted)\">[empty]</span>':''}</td>`+
+      `<td><input type="text" data-bd="${ei}" data-f="id" value="0x${id.toString(16).padStart(4,'0').toUpperCase()}" style="font-family:var(--mono)" oninput="syncBossDetailName(this)"></td>`+
+      `<td><input type="text" data-bd="${ei}" data-f="state" value="0x${state.toString(16).padStart(4,'0').toUpperCase()}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="num" value="${num}" min="0" max="127"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="exit" value="${exit_}" min="0" max="255"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="x" value="${xv.toFixed(2)}" step="0.1"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="z" value="${zv.toFixed(2)}" step="0.1"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="y" value="${yv.toFixed(2)}" step="0.1"></td>`+
+      `<td><input type="text" data-bd="${ei}" data-f="orient" value="0x${orient.toString(16).padStart(8,'0').toUpperCase()}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="seq" value="${seq}" min="0"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="size" value="${size}" min="0"></td>`+
+      `<td><input type="number" data-bd="${ei}" data-f="hp" value="${hp}" min="0"></td>`;
+    // Un-dim row when user types into any field
+    tr.querySelectorAll&&setTimeout(()=>{
+      tr.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{tr.style.opacity='1';}));
+    },0);
+    dbt.appendChild(tr);
+  }
+
+  // Small Monsters slots
+  const smTb=document.getElementById('tb-sm-slots');
+  smTb.innerHTML='';
+  smSlotEntries.forEach((s,i)=>{
+    const empty=s.id===0xFFFFFFFF;
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      `<td style="color:var(--muted);font-family:var(--mono)">${i}</td>`+
+      `<td><input type="text" data-smslot="${i}" value="0x${s.id.toString(16).padStart(8,'0').toUpperCase()}" style="font-family:var(--mono)" oninput="updateSmSlotDec(this)"></td>`+
+      `<td style="font-family:var(--mono);color:var(--muted)" id="smslot-dec${i}">${empty?'— empty —':s.id}</td>`;
+    smTb.appendChild(tr);
+  });
+
+  // Small Monsters appearance details
+  const smDt=document.getElementById('tb-sm-detail');
+  smDt.innerHTML='';
+  smAppearEntries.forEach((entry,ei)=>{
+    const e=entry.raw;
+    const smid =e[0]|e[1]<<8;
+    const state=e[2]|e[3]<<8;
+    const qty  =e[4]|e[5]<<8;
+    const act  =e[6]|e[7]<<8;
+    // 20 bytes skip at [8..27]
+    const orient=e[28]|e[29]<<8|e[30]<<16|e[31]<<24;
+    const xv=new DataView(new Uint8Array(e.slice(32,36)).buffer).getFloat32(0,true);
+    const zv=new DataView(new Uint8Array(e.slice(36,40)).buffer).getFloat32(0,true);
+    const yv=new DataView(new Uint8Array(e.slice(40,44)).buffer).getFloat32(0,true);
+    const seq =e[44]|e[45]<<8;
+    const size=e[48]|e[49]<<8;
+    const hp  =e[50]|e[51]<<8;
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      `<td style="color:var(--muted);font-family:var(--mono)">${ei}</td>`+
+      `<td><input type="text" data-sm="${ei}" data-f="id" value="0x${smid.toString(16).padStart(4,'0').toUpperCase()}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="text" data-sm="${ei}" data-f="state" value="0x${state.toString(16).padStart(4,'0').toUpperCase()}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="qty" value="${qty}" min="0" max="65535"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="act" value="${act}" min="0" max="65535"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="x" value="${xv.toFixed(2)}" step="0.1"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="z" value="${zv.toFixed(2)}" step="0.1"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="y" value="${yv.toFixed(2)}" step="0.1"></td>`+
+      `<td><input type="text" data-sm="${ei}" data-f="orient" value="0x${orient.toString(16).padStart(8,'0').toUpperCase()}" style="font-family:var(--mono)"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="seq" value="${seq}" min="0"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="size" value="${size}" min="0"></td>`+
+      `<td><input type="number" data-sm="${ei}" data-f="hp" value="${hp}" min="0"></td>`;
+    smDt.appendChild(tr);
+  });
+
+  renderHex(d);
+}
+
+function updateSmSlotDec(inp){
+  const i=inp.dataset.smslot;
+  const id=parseInt(inp.value.replace(/^0x/i,''),16)>>>0;
+  const el=document.getElementById('smslot-dec'+i);
+  if(el)el.textContent=id===0xFFFFFFFF?'— empty —':id;
+}
+
+function populateSupply(d){
+  const tb=document.getElementById('tb-supply');
+  tb.innerHTML='';
+  let off=ptrs.supply, idx=0;
+  for(let i=0;i<64;i++){
+    const v=ru16(d,off);
+    if(!v)break;
+    appendSupplyRow(tb,idx,v,ru16(d,off+2));
+    idx++;off+=4;
+  }
+}
+
+function appendSupplyRow(tb,idx,itemId,qty){
+  const tr=document.createElement('tr');
+  tr.innerHTML=
+    `<td style="color:var(--muted);font-family:var(--mono)">${idx}</td>`+
+    `<td><input type="text" class="s-item" value="0x${itemId.toString(16).padStart(4,'0')}"></td>`+
+    `<td><input type="number" class="s-qty" value="${qty}" min="1" max="99"></td>`+
+    `<td><button class="btn-danger" onclick="removeRow(this)">✕</button></td>`;
+  tb.appendChild(tr);
+}
+function addSupplyRow(){const tb=document.getElementById('tb-supply');appendSupplyRow(tb,tb.querySelectorAll('tr').length,1,1);renumberTable(tb);markDirty();}
+function removeRow(btn){btn.closest('tr').remove();renumberTable(btn.closest('tbody'));markDirty();}
+function renumberTable(tb){tb.querySelectorAll('tr').forEach((tr,i)=>{tr.cells[0].textContent=i;});}
+
+function readRewardBlocks(d){
+  const blocks=[];let off=ptrs.reward;
+  for(let i=0;i<20;i++){
+    const cond=ru32(d,off);
+    if(cond===0xFFFFFFFF||cond===0xFFFF)break;
+    const bptr=ru32(d,off+4);const entries=[];let boff=bptr;
+    for(let j=0;j<50;j++){
+      const prob=ru16(d,boff),item=ru16(d,boff+2),qty=ru16(d,boff+4);
+      if(prob===0xFFFF||prob===0)break;
+      entries.push({prob,item_id:item,qty});boff+=6;
+    }
+    blocks.push({cond,rewards:entries});off+=8;
+  }
+  return blocks;
+}
+
+function renderRewards(blocks){
+  const rb=document.getElementById('rewards-body');
+  rb.innerHTML='';
+  if(!blocks.length){
+    rb.innerHTML='<div style="padding:12px;color:var(--muted)">No reward blocks found.</div>';
+    return;
+  }
+  blocks.forEach((blk,bi)=>{
+    const div=document.createElement('div');
+    div.dataset.rblock=bi;
+    div.style.cssText='padding:12px;border-bottom:1px solid var(--border)';
+    // Block header row: cond input + delete block button
+    const hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:8px';
+    hdr.innerHTML=
+      `<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">Block ${bi} — cond:</span>`+
+      `<input type="text" class="rb-cond" value="0x${blk.cond.toString(16).padStart(8,'0').toUpperCase()}" style="font-family:var(--mono);width:130px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:3px;padding:3px 7px;font-size:13px">`+
+      `<button class="btn-danger" onclick="removeRewardBlock(this)">✕ Delete Block</button>`;
+    div.appendChild(hdr);
+    // Entries table
+    const tbl=document.createElement('table');
+    tbl.innerHTML=`<thead><tr><th>#</th><th>Prob %</th><th>Item ID (hex)</th><th>Qty</th><th></th></tr></thead>`;
+    const tbody=document.createElement('tbody');
+    tbody.className='rb-entries';
+    blk.rewards.forEach((r,ri)=>{
+      tbody.appendChild(makeRewardRow(ri,r.prob,r.item_id,r.qty));
+    });
+    tbl.appendChild(tbody);
+    div.appendChild(tbl);
+    const addBtn=document.createElement('button');
+    addBtn.className='btn-add'; addBtn.style.marginTop='8px';
+    addBtn.textContent='+ Add Entry';
+    addBtn.onclick=()=>{ addRewardEntry(tbody); };
+    div.appendChild(addBtn);
+    rb.appendChild(div);
+  });
+}
+
+function makeRewardRow(ri,prob,item_id,qty){
+  const tr=document.createElement('tr');
+  tr.innerHTML=
+    `<td style="color:var(--muted);font-family:var(--mono);width:28px">${ri}</td>`+
+    `<td><input type="number" class="re-prob" value="${prob}" min="0" max="100" style="width:70px"></td>`+
+    `<td><input type="text" class="re-item" value="0x${item_id.toString(16).padStart(4,'0').toUpperCase()}" style="font-family:var(--mono);width:90px"></td>`+
+    `<td><input type="number" class="re-qty" value="${qty}" min="1" max="99" style="width:60px"></td>`+
+    `<td><button class="btn-danger" onclick="removeRewardRow(this)">✕</button></td>`;
+  return tr;
+}
+
+function addRewardEntry(tbody){
+  const rows=tbody.querySelectorAll('tr');
+  tbody.appendChild(makeRewardRow(rows.length,10,1,1));
+  renumberRewardRows(tbody);
+  markDirty();
+}
+
+function removeRewardRow(btn){
+  const tbody=btn.closest('tbody');
+  btn.closest('tr').remove();
+  renumberRewardRows(tbody);
+  markDirty();
+}
+
+function renumberRewardRows(tbody){
+  tbody.querySelectorAll('tr').forEach((tr,i)=>{tr.cells[0].textContent=i;});
+}
+
+function addRewardBlock(){
+  if(!D)return;
+  const blocks=collectRewardBlocksFromUI();
+  blocks.push({cond:0,rewards:[{prob:100,item_id:1,qty:1}]});
+  renderRewards(blocks);
+  markDirty();
+}
+
+function removeRewardBlock(btn){
+  btn.closest('[data-rblock]').remove();
+  // Renumber block headers
+  document.querySelectorAll('#rewards-body [data-rblock]').forEach((div,i)=>{
+    div.dataset.rblock=i;
+    div.querySelector('span').textContent=`Block ${i} — cond:`;
+  });
+  markDirty();
+}
+
+function collectRewardBlocksFromUI(){
+  const blocks=[];
+  document.querySelectorAll('#rewards-body [data-rblock]').forEach(div=>{
+    const cond=parseInt(div.querySelector('.rb-cond').value.replace(/^0x/i,'')||'0',16)>>>0;
+    const rewards=[];
+    div.querySelectorAll('.rb-entries tr').forEach(tr=>{
+      const prob=parseInt(tr.querySelector('.re-prob').value)||0;
+      const item=parseInt(tr.querySelector('.re-item').value.replace(/^0x/i,'')||'0',16);
+      const qty =parseInt(tr.querySelector('.re-qty').value)||1;
+      if(prob>0||item>0) rewards.push({prob,item_id:item,qty});
+    });
+    blocks.push({cond,rewards});
+  });
+  return blocks;
+}
+
+
+
+// ── TEXT BADGES ───────────────────────────────────────────────────────────────
+function updateBadge(fieldId,key,maxBytes){
+  const el=document.getElementById('f-'+fieldId);
+  const badge=document.getElementById('b-'+key);
+  if(!el||!badge)return;
+  const cur=strToBytes(el.value).length;
+  badge.textContent=`${cur} / ${maxBytes} bytes`;
+  badge.className=cur>maxBytes?'badge be':cur>maxBytes*.85?'badge bw':'badge bi';
+}
+
+function updateTargetName(inp){
+  const idx=inp.dataset.ti;
+  const id=parseInt(inp.value.replace(/^0x/i,''),16);
+  const el=document.getElementById('tname'+idx);
+  if(el)el.textContent=MONSTERS[id]||'?';
+}
+function updateBossName(inp){
+  const slot=inp.dataset.bslot;
+  const id=parseInt(inp.value.replace(/^0x/i,''),16)>>>0;
+  const el=document.getElementById('bname'+slot);
+  if(el)el.textContent=id===0xFFFFFFFF?'— empty —':(MONSTERS[id]||'unknown');
+}
+function syncBossDetailName(inp){/* name col not shown but hook is here for future */}
+
+// ── HEX VIEW ─────────────────────────────────────────────────────────────────
+function renderHex(d){
+  const lines=[];const lim=Math.min(d.length,512);
+  for(let o=0;o<lim;o+=16){
+    let h='',a='';
+    for(let i=0;i<16&&o+i<d.length;i++){
+      const b=d[o+i];
+      h+=(o+i>=4&&o+i<0x28)?`<span class="hh">${b.toString(16).padStart(2,'0')}</span> `:b.toString(16).padStart(2,'0')+' ';
+      a+=(b>=32&&b<127)?String.fromCharCode(b):'·';
+    }
+    lines.push(`<span class="ho">${o.toString(16).padStart(4,'0')}:</span> ${h.padEnd(56)}<span class="ha">${a}</span>`);
+  }
+  if(d.length>512)lines.push(`<span class="ho">... (${d.length-512} more bytes)</span>`);
+  document.getElementById('hex-view').innerHTML=lines.join('\n');
+}
+
+// ── STRING WRITING ────────────────────────────────────────────────────────────
+// Write string into file. If new content fits in current allocation, write in-place.
+// If it exceeds current allocation but fits in globalMax, we need to expand.
+// Expansion strategy: since strings are contiguous, we shift subsequent strings forward.
+// For safety in this tool: warn and truncate to globalMax if needed.
+// The 0x0A byte is preserved for newlines.
+function writeString(d, key, newVal) {
+  const enc = strToBytes(newVal);
+  const globalMax = MAX_BYTES[key];
+  const cap = tcaps[key]; // current allocation in file (includes null bytes)
+  const off = tptrs[key];
+
+  // Truncate to global max
+  let bytes = enc.length > globalMax ? enc.slice(0, globalMax) : enc;
+  const needed = bytes.length + 1; // +1 for null terminator
+
+  if (needed <= cap) {
+    // Fits in current allocation — write in-place, zero the rest of the slot
+    for (let i = 0; i < cap; i++) d[off + i] = 0;
+    for (let i = 0; i < bytes.length; i++) d[off + i] = bytes[i];
+  } else {
+    // Need more space than currently allocated.
+    // Expand by shifting bytes forward from the point after this field.
+    const extraNeeded = needed - cap; // how many bytes we need to insert
+    const insertAt = off + cap;       // where to insert extra bytes
+
+    // Build new file with inserted zeros
+    const newD = new Uint8Array(d.length + extraNeeded);
+    newD.set(d.slice(0, insertAt), 0);
+    newD.set(d.slice(insertAt), insertAt + extraNeeded);
+    // Copy back into D (we'll overwrite D in place after caller returns)
+    d.set(newD.slice(0, d.length)); // only safe if same length - need to resize
+
+    // Since Uint8Array can't resize, rebuild it. We signal caller via return value.
+    // Write the string into the new buffer, then return it.
+    const nd = new Uint8Array(d.length + extraNeeded);
+    nd.set(d.slice(0, insertAt));
+    nd.set(d.slice(insertAt), insertAt + extraNeeded);
+    // Write string at off in nd
+    for (let i = 0; i < cap + extraNeeded; i++) nd[off + i] = 0;
+    for (let i = 0; i < bytes.length; i++) nd[off + i] = bytes[i];
+
+    // Update all pointers in nd that pointed past insertAt
+    fixPointersAfterInsert(nd, insertAt, extraNeeded);
+
+    // Update tcaps and tptrs for subsequent fields
+    for (const [k, v] of Object.entries(tptrs)) {
+      if (v > insertAt || (v === off && k !== key)) tptrs[k] = v + extraNeeded;
+    }
+    tcaps[key] = needed;
+    // Update sorted neighbours
+    const sorted = Object.entries(tptrs).sort((a,b) => a[1]-b[1]);
+    for (let i = 0; i < sorted.length; i++) {
+      const [k, o] = sorted[i];
+      tcaps[k] = i + 1 < sorted.length
+        ? sorted[i+1][1] - o
+        : (ptrs.qi + 20 > insertAt ? ru32(nd, ptrs.qi+20)+extraNeeded : ru32(nd, ptrs.qi+20)) - o;
+    }
+
+    return nd; // caller must replace D with this
+  }
+  return null;
+}
+
+function fixPointersAfterInsert(d, insertAt, delta) {
+  // Scan the first ~0x200 bytes for pointer values; adjust any that point past insertAt.
+  // Only adjust the known text pointer locations to be safe (avoid false positives).
+  const qi = ptrs.qi;
+  const tcPtr = ru32(d, qi+20);
+  const ecPtr = ru32(d, tcPtr);
+
+  function fixPtr(off) {
+    const v = ru32(d, off);
+    if (v >= insertAt && v < 0xFFFF0000) wu32(d, off, v + delta);
+  }
+  // Header pointers
+  [0x04,0x08,0x0C,0x10,0x14,0x18,0x1C,0x20,0x24].forEach(fixPtr);
+  // qi+20 (TaskContentPtr)
+  fixPtr(qi+20);
+  // tcPtr -> ecPtr
+  fixPtr(tcPtr);
+  // ecPtr -> 6 text ptrs
+  for(let i=0;i<6;i++) fixPtr(ecPtr+i*4);
+}
+
+// ── APPLY CHANGES ─────────────────────────────────────────────────────────────
+function applyChanges() {
+  let d = D;
+  const qi = ptrs.qi;
+
+  // Quest info
+  wu16(d,qi+24, clamp(parseInt(document.getElementById('f-qnum').value)||0,0,65535));
+  wu8 (d,qi+26, clamp(parseInt(document.getElementById('f-star').value)||1,1,10));
+  wu8 (d,qi,    parseInt(document.getElementById('f-qtype').value)||4);
+  wu8 (d,qi+1,  parseInt(document.getElementById('f-additional').value)||0);
+  wu8 (d,qi+28, parseInt(document.getElementById('f-mapid').value)||0);
+  wu8 (d,qi+29, parseInt(document.getElementById('f-speccond').value)||0);
+  wu8 (d,qi+30, clamp(parseInt(document.getElementById('f-targetcount').value)||1,0,2));
+  wu32(d,qi+4,  clamp(parseInt(document.getElementById('f-fee').value)||0,0,99999));
+  wu32(d,qi+8,  clamp(parseInt(document.getElementById('f-reward').value)||0,0,9999999));
+  const penInput=clamp(parseInt(document.getElementById('f-penalty').value)||0,0,65535);
+  wu16(d,qi+12,penInput);
+  wu32(d,0x2C,  clamp(parseInt(document.getElementById('f-gp').value)||0,0,99999));
+  const mins=parseFloat(document.getElementById('f-time').value)||0;
+  wu32(d,qi+16, Math.round(mins*1800));
+  document.getElementById('time-raw').textContent='raw ticks: '+ru32(d,qi+16);
+  wu8 (d,0x34,  parseInt(document.getElementById('f-carve').value)||0);
+  wu8 (d,0x39,  parseInt(document.getElementById('f-difficulty').value)||0);
+  wu8 (d,0x35,  parseInt(document.getElementById('f-arrive').value)||0);
+  const bsh=clamp(parseInt(document.getElementById('f-bshape').value)||0,0,65535);
+  wu16(d,0x28,bsh);
+  document.getElementById('bshape-hex').textContent='0x'+bsh.toString(16).toUpperCase().padStart(4,'0');
+  wu8(d,0x2A,  clamp(parseInt(document.getElementById('f-bsize').value)||0,0,255));
+  wu8(d,0x2B,  clamp(parseInt(document.getElementById('f-bstr').value)||0,0,15));
+
+  // Supply state
+  wu8(d,0x36, parseInt(document.getElementById('f-ratmode').value)||0);
+  wu8(d,0x37, parseInt(document.getElementById('f-ratcond').value.replace(/^0x/i,'')||'0',16));
+  wu8(d,0x38, clamp(parseInt(document.getElementById('f-ratqty').value)||0,0,255));
+
+  // questAreaChange[0] at 0x3C, [1] at 0x44
+  document.querySelectorAll('#tb-qac tr').forEach(tr=>{
+    const i=parseInt(tr.querySelector('[data-f="cc"]').dataset.qac);
+    const o=i===0?0x3C:0x44;
+    wu32(d,o, parseInt(tr.querySelector('[data-f="cc"]').value)||0);
+    const tid=parseInt(tr.querySelector('[data-f="tid"]').value.replace(/^0x/i,'')||'0',16);
+    wu16(d,o+4, tid);
+    wu8(d,o+6, clamp(parseInt(tr.querySelector('[data-f="qty"]').value)||0,0,255));
+    wu8(d,o+7, clamp(parseInt(tr.querySelector('[data-f="num"]').value)||0,0,255));
+  });
+
+  // Targets: template = cond(u8)+add(u16)+skip(1)+id(u16)+qty(u16) at qi+32, qi+40
+  document.querySelectorAll('#tb-targets tr').forEach(tr=>{
+    const i=parseInt(tr.querySelector('[data-f="cond"]').dataset.ti);
+    const base=qi+32+i*8;
+    wu8 (d,base,   parseInt(tr.querySelector('[data-f="cond"]').value)||0);
+    wu16(d,base+1, parseInt(tr.querySelector('[data-f="add"]').value.replace(/^0x/i,'')||'0',16));
+    // base+3 = skip, untouched
+    wu16(d,base+4, parseInt(tr.querySelector('[data-f="id"]').value.replace(/^0x/i,'')||'0',16));
+    wu16(d,base+6, parseInt(tr.querySelector('[data-f="qty"]').value)||0);
+  });
+
+  // Text fields — write with possible expansion
+  const textFields = [
+    ['tname','name',28],['tsuccess','success',56],['tfailure','failure',56],
+    ['tmonster','monster',56],['tclient','client',28],['tdesc','desc',200]
+  ];
+  for(const [fid,key,maxB] of textFields){
+    const val=document.getElementById('f-'+fid).value;
+    const result=writeString(d, key, val);
+    if(result){
+      // File grew — replace D
+      D=result; d=D;
+    }
+  }
+
+  // Supply: write items, terminate with SINGLE u16 0x0000 (2 bytes only!)
+  let off=ptrs.supply;
+  document.querySelectorAll('#tb-supply tr').forEach(tr=>{
+    const item=parseInt(tr.querySelector('.s-item').value.replace(/^0x/i,'')||'0',16);
+    const qty=parseInt(tr.querySelector('.s-qty').value)||1;
+    wu16(d,off,item); wu16(d,off+2,qty); off+=4;
+  });
+  wu16(d,off,0); // ONLY 2 bytes — do NOT touch off+2!
+
+  // Boss MixedBossPtr slots
+  const mixedPtr=ru32(d,ptrs.boss+8);
+  document.querySelectorAll('#tb-boss tr').forEach(tr=>{
+    const slot=parseInt(tr.querySelector('input').dataset.bslot);
+    const id=parseInt(tr.querySelector('input').value.replace(/^0x/i,'')||'0',16)>>>0;
+    wu32(d,mixedPtr+slot*4,id);
+    const el=document.getElementById('bname'+slot);
+    if(el)el.textContent=MONSTERS[id]||'— empty —';
+  });
+
+  // Boss appearance details — relocate block to safe region (ptrs.boss+16) and write all active rows
+  // Active = ID field is non-zero. Empty rows (ID=0) are skipped so end marker is placed correctly.
+  const bossWriteBase = ptrs.boss + 16; // safe area in zero-padding after boss header
+  let bossWriteOff = bossWriteBase;
+  const buf4=new ArrayBuffer(4);const dv4=new DataView(buf4);
+  document.querySelectorAll('#tb-bossdetail tr').forEach(tr=>{
+    const id   =parseInt(tr.querySelector('[data-f="id"]').value.replace(/^0x/i,'')||'0',16);
+    if(!id) return; // skip empty slot
+    const state=parseInt(tr.querySelector('[data-f="state"]').value.replace(/^0x/i,'')||'0',16);
+    const num  =parseInt(tr.querySelector('[data-f="num"]').value)||0;
+    const exit =parseInt(tr.querySelector('[data-f="exit"]').value)||0;
+    const xv   =parseFloat(tr.querySelector('[data-f="x"]').value)||0;
+    const zv   =parseFloat(tr.querySelector('[data-f="z"]').value)||0;
+    const yv   =parseFloat(tr.querySelector('[data-f="y"]').value)||0;
+    const orient=parseInt(tr.querySelector('[data-f="orient"]').value.replace(/^0x/i,'')||'0',16)>>>0;
+    const seq  =parseInt(tr.querySelector('[data-f="seq"]').value)||0;
+    const size =parseInt(tr.querySelector('[data-f="size"]').value)||0;
+    const hp   =parseInt(tr.querySelector('[data-f="hp"]').value)||0;
+    // Zero out the 60-byte slot first
+    for(let b=0;b<60;b++) d[bossWriteOff+b]=0;
+    wu16(d,bossWriteOff,    id);
+    wu16(d,bossWriteOff+2,  state);
+    wu8 (d,bossWriteOff+4,  num);
+    wu8 (d,bossWriteOff+7,  exit);
+    wu32(d,bossWriteOff+28, orient);
+    dv4.setFloat32(0,xv,true); for(let b=0;b<4;b++) d[bossWriteOff+32+b]=new Uint8Array(buf4)[b];
+    dv4.setFloat32(0,zv,true); for(let b=0;b<4;b++) d[bossWriteOff+36+b]=new Uint8Array(buf4)[b];
+    dv4.setFloat32(0,yv,true); for(let b=0;b<4;b++) d[bossWriteOff+40+b]=new Uint8Array(buf4)[b];
+    wu16(d,bossWriteOff+44, seq);
+    wu16(d,bossWriteOff+48, size);
+    wu16(d,bossWriteOff+50, hp);
+    bossWriteOff += 60;
+  });
+  // Write end marker
+  wu16(d, bossWriteOff, 0xFFFF);
+  // Update AppearanceDetailsPtr in boss block to point to new location
+  wu32(d, ptrs.boss+12, bossWriteBase);
+  // Update bossAppearEntries to reflect new offsets for future saves
+  bossAppearEntries=[];
+  let bossReScan=bossWriteBase;
+  while(bossReScan<bossWriteOff){
+    bossAppearEntries.push({off:bossReScan, raw:Array.from(d.slice(bossReScan,bossReScan+60))});
+    bossReScan+=60;
+  }
+
+  // Small monster slots write-back
+  document.querySelectorAll('#tb-sm-slots tr').forEach(tr=>{
+    const i=parseInt(tr.querySelector('input').dataset.smslot);
+    const id=parseInt(tr.querySelector('input').value.replace(/^0x/i,'')||'0',16)>>>0;
+    wu32(d,ptrs.smMixedFish+i*4,id);
+    smSlotEntries[i].id=id;
+    const el=document.getElementById('smslot-dec'+i);
+    if(el)el.textContent=id===0xFFFFFFFF?'— empty —':id;
+  });
+
+  // Small monster appearance details write-back
+  document.querySelectorAll('#tb-sm-detail tr').forEach(tr=>{
+    const ei=parseInt(tr.querySelector('[data-sm]').dataset.sm);
+    if(ei>=smAppearEntries.length)return;
+    const soff=smAppearEntries[ei].off;
+    const smid =parseInt(tr.querySelector('[data-f="id"]').value.replace(/^0x/i,'')||'0',16);
+    const state=parseInt(tr.querySelector('[data-f="state"]').value.replace(/^0x/i,'')||'0',16);
+    const qty  =parseInt(tr.querySelector('[data-f="qty"]').value)||0;
+    const act  =parseInt(tr.querySelector('[data-f="act"]').value)||0;
+    const xv   =parseFloat(tr.querySelector('[data-f="x"]').value)||0;
+    const zv   =parseFloat(tr.querySelector('[data-f="z"]').value)||0;
+    const yv   =parseFloat(tr.querySelector('[data-f="y"]').value)||0;
+    const orient=parseInt(tr.querySelector('[data-f="orient"]').value.replace(/^0x/i,'')||'0',16)>>>0;
+    const seq  =parseInt(tr.querySelector('[data-f="seq"]').value)||0;
+    const size =parseInt(tr.querySelector('[data-f="size"]').value)||0;
+    const hp   =parseInt(tr.querySelector('[data-f="hp"]').value)||0;
+    wu16(d,soff,   smid);
+    wu16(d,soff+2, state);
+    wu16(d,soff+4, qty);
+    wu16(d,soff+6, act);
+    // soff+8..27 = FSkip(20) — leave unchanged
+    wu32(d,soff+28,orient);
+    const sbuf=new ArrayBuffer(4);const sdv=new DataView(sbuf);
+    sdv.setFloat32(0,xv,true); for(let b=0;b<4;b++) d[soff+32+b]=new Uint8Array(sbuf)[b];
+    sdv.setFloat32(0,zv,true); for(let b=0;b<4;b++) d[soff+36+b]=new Uint8Array(sbuf)[b];
+    sdv.setFloat32(0,yv,true); for(let b=0;b<4;b++) d[soff+40+b]=new Uint8Array(sbuf)[b];
+    wu16(d,soff+44,seq);
+    // soff+46,+47 = FSkip(2)
+    wu16(d,soff+48,size);
+    wu16(d,soff+50,hp);
+  });
+
+  renderHex(D);
+}
+
+function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+
+// ── SAVE ─────────────────────────────────────────────────────────────────────
+function doSave(){
+  applyChanges();
+  const blob=new Blob([D],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=fname||'quest_edited.bin';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  isDirty=false;
+  document.getElementById('save-bar').style.display='none';
+  document.getElementById('sdot').className='sdot ok';
+  document.getElementById('stxt').textContent=fname+'  [exported]';
+}
+
+// ── FILE LOADING ──────────────────────────────────────────────────────────────
+function loadFile(file){
+  fname=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    D=new Uint8Array(e.target.result);
+    const magic=String.fromCharCode(D[0],D[1],D[2],D[3]);
+    try{
+      parseFile(D);
+      buildStageSelect();
+      populateUI(D);
+      upgradeSelectsToCombo();
+    }catch(ex){
+      setStatus('err','⚠️ Parse error: '+ex.message);
+      console.error(ex);return;
+    }
+    document.getElementById('dz-wrap').style.display='none';
+    document.getElementById('editor').style.display='block';
+    document.getElementById('btn-open').style.display='inline-block';
+    document.getElementById('btn-save').style.display='inline-block';
+    setStatus('ok',fname);
+    document.getElementById('ssz').textContent=D.length.toLocaleString()+' bytes';
+    isDirty=false;
+    document.getElementById('save-bar').style.display='none';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setStatus(t,m){document.getElementById('sdot').className='sdot '+t;document.getElementById('stxt').textContent=m;}
+function markDirty(){if(!D)return;isDirty=true;document.getElementById('save-bar').style.display='flex';document.getElementById('sdot').className='sdot dirty';document.getElementById('stxt').textContent=fname+'  [modified]';}
+
+// ── COMBOBOX UPGRADE ─────────────────────────────────────────────────────────
+// Wraps a <select> so users can type a custom numeric value.
+function upgradeSelectsToCombo(){
+  document.querySelectorAll('#editor select').forEach(sel=>{
+    if(sel.dataset.comboUpgraded) return;
+    sel.dataset.comboUpgraded='1';
+    const wrap=document.createElement('div');
+    wrap.className='combo-wrap';
+    sel.parentNode.insertBefore(wrap,sel);
+    wrap.appendChild(sel);
+    const btn=document.createElement('button');
+    btn.className='combo-toggle'; btn.type='button'; btn.title='Enter custom value';
+    btn.textContent='✎';
+    wrap.appendChild(btn);
+    const inp=document.createElement('input');
+    inp.type='text'; inp.className='combo-custom'; inp.placeholder='Custom value…';
+    wrap.appendChild(inp);
+    let customMode=false;
+    btn.addEventListener('click',()=>{
+      customMode=!customMode;
+      inp.style.display=customMode?'block':'none';
+      btn.style.color=customMode?'var(--accent)':'var(--muted)';
+      if(customMode){
+        // Pre-fill with current selected value
+        inp.value=sel.value;
+        inp.focus();
+      } else {
+        // Try to match typed value back to an option
+        const v=inp.value.trim();
+        let matched=false;
+        for(const opt of sel.options){
+          if(opt.value===v){sel.value=v;matched=true;break;}
+        }
+        if(!matched){
+          // Add a temporary option
+          const tmp=document.createElement('option');
+          tmp.value=v; tmp.textContent=`Custom: ${v}`; tmp.dataset.custom='1';
+          // Remove previous custom options
+          Array.from(sel.options).forEach(o=>{if(o.dataset.custom)o.remove();});
+          sel.appendChild(tmp);
+          sel.value=v;
+        }
+        markDirty();
+      }
+    });
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){btn.click();}
+      if(e.key==='Escape'){customMode=false;inp.style.display='none';btn.style.color='var(--muted)';}
+    });
+  });
+}
+
+// ── EVENT WIRING ──────────────────────────────────────────────────────────────
+document.getElementById('fi').addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);e.target.value='';});
+const dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0]);});
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    if(!D)return;
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    item.classList.add('active');
+    const p=document.getElementById('tab-'+item.dataset.tab);
+    if(p)p.classList.add('active');
+  });
+});
+document.getElementById('editor').addEventListener('input',markDirty);
+document.getElementById('editor').addEventListener('change',markDirty);
+</script>
+</body>
+</html>
