@@ -12,7 +12,9 @@
   --mono:'Share Tech Mono',monospace;--sans:'Rajdhani',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh}
+html,body{overflow:hidden;height:100vh}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px}
+#main::-webkit-scrollbar{width:6px}#main::-webkit-scrollbar-track{background:transparent}#main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}#main::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 #header{background:var(--surface);border-bottom:2px solid var(--accent2);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px #0008}
 #header h1{font-weight:700;font-size:20px;letter-spacing:3px;text-transform:uppercase;color:var(--accent)}
 .sub{color:var(--muted);font-size:11px;font-family:var(--mono)}
