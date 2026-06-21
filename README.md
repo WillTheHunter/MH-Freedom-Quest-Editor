@@ -4,6 +4,8 @@ A single-page web editor for **Monster Hunter Freedom 1 (MHF1)**,
 **Monster Hunter Freedom 2 (MHF2)**, and **Monster Hunter Freedom Unite (MHFU)**
 quest binaries (`.bin`, `.mib`, `.pat`).
 
+Browser page at: https://willthehunter.github.io/MH-Freedom-Quest-Editor/
+
 ## Features
 
 - **Full quest editing** for all 3 games - Quest Info, Text Fields, Targets, Supply Box, Rewards, Boss Spawns, Small Monsters, Gathering, Training/Arena, and Fixed Info tabs
