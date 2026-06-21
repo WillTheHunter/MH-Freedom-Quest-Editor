@@ -144,7 +144,7 @@ function strToBytes(s){
 
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-var D=null, fname='', isDirty=false;
+var D=null, fname='', isDirty=false, isNewQuest=false;
 
 var ptrs={}, tptrs={}, tcaps={};
 
@@ -601,7 +601,7 @@ async function doSave(format){
 
   // Safe mode: check crown sizes before export
   if(isSafeMode && isSafeMode()){
-    applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults();
+    if(isNewQuest){ applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
     if(!safeModeExportCheck()) return;
   }
 
@@ -1051,6 +1051,7 @@ function loadFile(file){
     setStatus('ok', fname + (isPat ? '  [.pat — prefix preserved]' : ''));
     document.getElementById('ssz').textContent = D.length.toLocaleString() + ' bytes' + (isPat ? ' (excl. 4B prefix)' : '');
     isDirty = false;
+    isNewQuest = false;
     document.getElementById('save-bar').style.display = 'none';
     onQuestLoaded();
   };
@@ -1078,6 +1079,8 @@ function loadFromData(bytes, name, isNew){
     setStatus('err', '⚠️ Template error: ' + ex.message);
     console.error(ex); return;
   }
+  isDirty = true;
+  isNewQuest = true;
   onQuestLoaded();
   document.getElementById('dz-wrap').style.display = 'none';
   document.getElementById('editor').style.display = 'block';
@@ -1092,8 +1095,6 @@ function loadFromData(bytes, name, isNew){
   const firstPanel = document.getElementById(GAME_MODE==='mhf2'?'tab-info':firstTab);
   if(firstPanel) firstPanel.classList.add('active');
   setStatus('ok', fname + '  [new quest]');
-  document.getElementById('ssz').textContent = D.length.toLocaleString() + ' bytes';
-  isDirty = true;
   document.getElementById('save-bar').style.display = 'flex';
   renderHex(D);
 }
@@ -2160,8 +2161,8 @@ const SAFE_SUPPLY = {
 
 const SAFE_REWARD_ITEM = { mhf1: 159, mhf2: 193, mhfu: 193 };
 const SAFE_JOIN = { mhf1: 4, mhf2: 5, mhfu: 8 };
-const SAFE_REWARD_Z = 3;
-const SAFE_PENALTY_Z = 1;
+const SAFE_REWARD_Z = 300;
+const SAFE_PENALTY_Z = 100;
 const SAFE_HRP_SUCC = 3;
 const SAFE_HRP_FAIL = 1;
 
@@ -2222,7 +2223,7 @@ function applyToolMode(){
     }
   });
 
-  if(safe) applySafeDefaults();
+  if(safe && isNewQuest) applySafeDefaults();
 }
 
 function applySafeDefaults(){
@@ -2422,7 +2423,7 @@ function toggleToolMode(){
     // Switching back to Safe
     TOOL_MODE = 'safe';
     applyToolMode();
-    if(D) { applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
+    if(D && isNewQuest) { applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
   }
 }
 
@@ -2441,6 +2442,7 @@ function confirmAdvancedMode(){
 const _origSetStatus = typeof setStatus === 'function' ? setStatus : null;
 function onQuestLoaded(){
   if(!isSafeMode()) return;
+  if(!isNewQuest) return;
   setTimeout(() => {
     applySafeSupply();
     applySafeRewards();
@@ -2462,7 +2464,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!isSafeMode()){
         TOOL_MODE = 'safe';
         applyToolMode();
-        if(D) { applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
+        if(D && isNewQuest) { applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
       }
     });
   });
