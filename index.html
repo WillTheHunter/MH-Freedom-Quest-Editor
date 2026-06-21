@@ -1,0 +1,992 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Monster Hunter Freedom Quest Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
+:root{
+  --bg:#0d0f12;--surface:#141720;--panel:#191c27;--border:#252a3a;
+  --accent:#e8a020;--accent2:#b84010;--text:#cfc5a8;--muted:#5c6278;
+  --danger:#b03030;--success:#2a8a4a;
+  --mono:'Share Tech Mono',monospace;--sans:'Rajdhani',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh}
+#header{background:var(--surface);border-bottom:2px solid var(--accent2);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px #0008}
+#header h1{font-weight:700;font-size:20px;letter-spacing:3px;text-transform:uppercase;color:var(--accent)}
+.sub{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.spacer{flex:1}
+button{font-family:var(--sans);font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;border-radius:3px;padding:7px 16px;font-size:13px;transition:all .15s}
+.btn-primary{background:var(--accent2);color:#fff}.btn-primary:hover{background:var(--accent);color:#000}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--accent);border-color:var(--accent)}
+.btn-danger{background:var(--danger);color:#fff;padding:3px 9px;font-size:11px}.btn-danger:hover{filter:brightness(1.3)}
+.export-opt:hover{background:var(--border)}
+.btn-dup{background:var(--border);color:var(--text);padding:3px 9px;font-size:11px}.btn-dup:hover{filter:brightness(1.4)}
+.btn-add{background:transparent;color:var(--success);border:1px solid var(--success);padding:5px 12px;font-size:12px}.btn-add:hover{background:rgba(42,138,74,.15)}
+#app{display:flex;height:calc(100vh - 54px)}
+#sidebar{width:180px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;padding:10px 0;overflow-y:auto}
+.game-btn{padding:5px 14px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--mono);letter-spacing:.5px;transition:all .15s}
+.game-btn:hover{border-color:var(--accent);color:var(--text)}.game-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+/* MHFU nav items are hidden by default via JS setGame, not CSS */
+.nav-item{padding:8px 16px;cursor:pointer;font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:12px;color:var(--muted);border-left:3px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-item:hover{color:var(--text);background:var(--panel)}.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--panel)}.nav-disabled{opacity:0.4;pointer-events:none;cursor:not-allowed}
+.nav-sep{height:1px;background:var(--border);margin:6px 12px}
+#main{flex:1;overflow-y:auto;padding:18px;padding-bottom:50px}
+#dropzone{border:2px dashed var(--border);border-radius:8px;padding:50px 40px;text-align:center;cursor:pointer;transition:all .2s;margin:30px auto;max-width:500px}
+#dropzone:hover,#dropzone.drag-over{border-color:var(--accent);background:rgba(232,160,32,.05)}
+#dropzone .ico{font-size:44px;margin-bottom:14px}#dropzone h2{font-size:19px;color:var(--accent);margin-bottom:8px}
+#dropzone p{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.6}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:5px;margin-bottom:14px;overflow:hidden}
+.card-hdr{background:var(--surface);padding:8px 14px;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--border)}
+.card-body{padding:14px}
+.note{font-size:12px;color:var(--muted);padding:7px 14px;border-bottom:1px solid var(--border);line-height:1.5}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px}
+.fg3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:3px;padding:6px 9px;font-family:var(--sans);font-size:14px;transition:border-color .15s;width:100%}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent)}
+.f select option{background:var(--panel)}.f textarea{resize:vertical;min-height:80px;font-size:13px}
+.f .hint{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.fw{grid-column:1/-1}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surface);color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:10px;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-family:var(--mono)}
+td{padding:5px 8px;border-bottom:1px solid rgba(37,42,58,.7);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:3px 6px;border-radius:3px}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+select option{background:var(--panel)}
+.btn-dup{background:rgba(40,114,168,.25);color:#6ac0f0;border:1px solid rgba(40,114,168,.4)}
+td input,td select{background:transparent;border-color:transparent;width:100%}
+td input:focus,td select:focus{background:var(--bg);border-color:var(--accent)}
+.badge{display:inline-block;padding:1px 7px;border-radius:2px;font-size:11px;font-family:var(--mono)}
+.bi{background:rgba(40,114,168,.15);color:#4898d8;border:1px solid rgba(40,114,168,.3)}
+.bw{background:rgba(232,160,32,.15);color:var(--accent);border:1px solid rgba(232,160,32,.3)}
+.be{background:rgba(176,48,48,.15);color:#d06060;border:1px solid rgba(176,48,48,.3)}
+#save-bar{background:rgba(184,64,16,.12);border:1px solid rgba(184,64,16,.4);border-radius:4px;padding:10px 14px;display:none;align-items:center;gap:12px;margin-bottom:14px}
+#save-bar span{flex:1;color:var(--accent);font-weight:600;font-size:14px}
+#hex-view{font-family:var(--mono);font-size:11px;white-space:pre;overflow-x:auto;background:var(--bg);padding:10px;border-radius:4px;border:1px solid var(--border);max-height:calc(100vh - 200px);overflow-y:auto;color:#6a8a5a;line-height:1.6}
+.ho{color:var(--muted);user-select:none}.ha{color:#607888;margin-left:6px}.hh{color:var(--accent)}
+#statusbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:5px 18px;display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;color:var(--muted);z-index:200}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;flex-shrink:0}
+.sdot.ok{background:var(--success)}.sdot.dirty{background:var(--accent)}.sdot.err{background:var(--danger)}
+@keyframes sizeBlink{0%,100%{opacity:1}50%{opacity:.3}}
+.size-tbl{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+.size-tbl th{text-align:left;padding:6px 8px;color:var(--muted);border-bottom:2px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.size-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.size-tbl tr:hover{background:rgba(232,160,32,.05)}
+.size-tbl tr.size-warn{animation:sizeBlink 2s ease-in-out infinite}
+.size-tbl tr.size-warn td{color:#e06040}
+.size-tbl .sz-small{color:#4a9}
+.size-tbl .sz-big{color:#e8a020}
+.size-tbl .sz-exceed{color:#e04040;font-weight:600;font-size:11px}
+.size-tbl .sz-name{color:var(--text);font-family:var(--sans);font-weight:500}
+.nav-item.size-warning{animation:sizeBlink 2s ease-in-out infinite;color:#e06040!important}
+.warn-hint{font-size:11px;color:#d06060;font-family:var(--mono);margin-top:2px;display:none}
+
+/* Editable hex view */
+.hex-byte{display:inline-block;min-width:22px;cursor:pointer;border-radius:2px;padding:0 1px}
+.hex-byte:hover{background:rgba(232,160,32,.18);color:var(--accent)}
+.hex-byte.editing{background:var(--bg);color:var(--accent);outline:1px solid var(--accent)}
+#hex-edit-inp{position:fixed;opacity:0;pointer-events:none;width:1px;height:1px}
+
+/* Combobox: select + always-visible custom override below */
+.combo-wrap{display:flex;flex-direction:column;gap:3px}
+.combo-custom-row{display:flex;gap:5px;align-items:center}
+.combo-custom-row input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:3px 7px;border-radius:3px}
+.combo-custom-row input:focus{outline:none;border-color:var(--accent)}
+.combo-custom-row input::placeholder{color:var(--muted)}
+.combo-custom-row span{font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap;cursor:default}
+/* Hex↔Dec toggle */
+.hd-wrap{display:flex;gap:4px;align-items:center}
+.hd-wrap input{flex:1;min-width:0}
+.hd-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:2px 6px;letter-spacing:0;text-transform:none;font-family:var(--mono);cursor:pointer;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.hd-btn:hover{color:var(--accent);border-color:var(--accent)}
+.sm-btn{background:var(--panel,#1e1e28);border:1px solid var(--border);color:var(--text);font-size:12px;padding:4px 10px;font-family:var(--mono);cursor:pointer;border-radius:4px;white-space:nowrap}
+.sm-btn:hover{border-color:var(--accent);color:var(--accent)}
+.drag-handle{cursor:grab;user-select:none;font-size:16px;color:var(--muted);padding:0 4px}
+.drag-handle:hover{color:var(--accent)}
+tr.drag-over-row{border-top:2px solid var(--accent) !important}
+</style>
+</head>
+<body>
+<div id="header">
+  <div><h1>MH Freedom Quest Editor</h1><div class="sub" id="hdr-sub">Monster Hunter Freedom 2 · Binary Quest Editor v3</div></div>
+  <div class="spacer"></div>
+  <button class="btn-ghost" id="btn-open" onclick="document.getElementById('fi').click()">📂 Open</button>
+  <button class="btn-ghost" id="btn-newquest-hdr" onclick="createNewQuest()">🆕 New Quest</button>
+  <div id="export-menu-wrap" style="display:none;position:relative">
+    <button class="btn-primary" id="btn-save" onclick="toggleExportMenu()">💾 Export ▾</button>
+    <div id="export-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--panel,#1e1e28);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:100;min-width:200px;overflow:hidden">
+      <div class="export-opt" onclick="doExport('auto')" style="padding:9px 14px;cursor:pointer;font-size:13px">💾 Keep original format</div>
+      <div class="export-opt" onclick="doExport('bin')" style="padding:9px 14px;cursor:pointer;font-size:13px">📦 Export as .bin</div>
+      <div class="export-opt" onclick="doExport('mib')" style="padding:9px 14px;cursor:pointer;font-size:13px">📦 Export as .mib</div>
+      <div class="export-opt" onclick="doExport('pat')" style="padding:9px 14px;cursor:pointer;font-size:13px">📦 Export as .pat</div>
+      <div class="export-opt" onclick="doExport('json')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-top:1px solid var(--border)">📄 Export data as JSON</div>
+    </div>
+  </div>
+  <input type="file" id="fi" style="display:none" accept="*/*">
+</div>
+<div id="app">
+  <div id="sidebar">
+    <div class="nav-item active" data-tab="info">⚙️ Quest Info</div>
+    <div class="nav-item" data-tab="text">📝 Text Fields</div>
+    <div class="nav-item" data-tab="targets">🎯 Targets</div>
+    <div class="nav-item" data-tab="supply">🎒 Supply Box</div>
+    <div class="nav-item" data-tab="rewards">💰 Rewards</div>
+    <div class="nav-item" data-tab="boss">🐉 Boss Spawns</div>
+    <div class="nav-item" data-tab="smallmon">🐾 Small Monsters</div>
+    <div class="nav-item" data-tab="gather">🌿 Gathering</div>
+    <div class="nav-item" data-tab="training">🏟️ Training / Arena</div>
+    <div class="nav-item" data-tab="fixed">🔒 Fixed Info</div>
+    <div class="nav-sep f2-only-sep"></div>
+    <div class="nav-item f2-hex" data-tab="hex">🔢 Hex View</div>
+    <div class="nav-item" data-tab="calc">🧮 Calculator</div>
+    <div class="nav-item" data-tab="sizetable">📏 Size Table</div>
+    <div class="nav-item" data-tab="events">📦 Events Loader</div>
+    <div class="nav-item" data-tab="toolmode" id="f2-toolmode-btn">🛡️ Safe Mode</div>
+    <!-- MHFU nav items -->
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-info">⚙️ Quest Info</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-text">📝 Text Fields</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-targets">🎯 Targets</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-supply">🎒 Supply Box</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-rewards">💰 Rewards</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-boss">🐉 Boss Spawns</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-smallmon">🐾 Small Monsters</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-gather">🌿 Gathering</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-arena">🏟️ Training / Arena</div>
+    <div class="nav-item mhfu-nav" data-tab="mhfu-tab-fixed">🔒 Fixed Info</div>
+    <div class="nav-sep mhfu-nav"></div>
+    <div class="nav-item mhfu-nav fu-hex" data-tab="hex">🔢 Hex View</div>
+    <div class="nav-item mhfu-nav" data-tab="calc">🧮 Calculator</div>
+    <div class="nav-item mhfu-nav" data-tab="sizetable">📏 Size Table</div>
+    <div class="nav-item mhfu-nav" data-tab="events">📦 Events Loader</div>
+    <div class="nav-item mhfu-nav" data-tab="toolmode" id="fu-toolmode-btn">🛡️ Safe Mode</div>
+    <!-- MHF1 nav items -->
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-info">⚙️ Quest Info</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-text">📝 Text Fields</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-targets">🎯 Targets</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-supply">🎒 Supply Box</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-rewards">💰 Rewards</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-boss">🐉 Boss Spawns</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-smallmon">🐾 Small Monsters</div>
+    <!--<div class="nav-item mhf1-nav" data-tab="mhf1-tab-gather">🌿 Gathering</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-training">🏟️ Training / Arena</div>-->
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-fixed">🔒 Fixed Info</div>
+    <div class="nav-sep mhf1-nav"></div>
+    <div class="nav-item mhf1-nav f1-hex" data-tab="hex">🔢 Hex View</div>
+    <div class="nav-item mhf1-nav" data-tab="calc">🧮 Calculator</div>
+    <div class="nav-item mhf1-nav" data-tab="sizetable">📏 Size Table</div>
+    <div class="nav-item mhf1-nav" data-tab="events">📦 Events Loader</div>
+    <div class="nav-item mhf1-nav" data-tab="toolmode" id="f1-toolmode-btn">🛡️ Safe Mode</div>
+  </div>
+  <div id="main">
+    <div id="game-select-bar" style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--surface);border-bottom:1px solid var(--border);">
+      <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)">Game:</span>
+      <button class="game-btn" data-game="mhf1" onclick="setGame('mhf1',this)">Freedom 1</button>
+      <button class="game-btn active" data-game="mhf2" onclick="setGame('mhf2',this)">Freedom 2</button>
+      <button class="game-btn" data-game="mhfu" onclick="setGame('mhfu',this)">Freedom Unite</button>
+      <button class="game-btn" style="opacity:.4;cursor:not-allowed" title="Coming soon">Portable 3rd (soon)</button>
+      <span id="game-badge" style="margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--accent);letter-spacing:1px">MHF2 MODE</span>
+    </div>
+    <div id="dz-wrap">
+      <div id="dropzone">
+        <div class="ico">🗡️</div>
+        <h2 id="load-title">Load MHF2 Quest File</h2>
+        <p>Drop your quest binary here, or click Browse.<br>Works with any extension: <b>none · .bin · .mib</b></p>
+        <button class="btn-primary" onclick="document.getElementById('fi').click()">Browse File…</button>
+        <div style="margin-top:14px;color:var(--muted);font-size:12px">— or —</div>
+        <button class="btn-add" id="btn-newquest" style="margin-top:10px" onclick="createNewQuest()">🆕 New MHF2 Quest</button>
+        <p style="margin-top:10px;font-size:11px">Creates a blank quest from scratch for the selected game profile —<br>no file needed. Pick the game above first.</p>
+      </div>
+    </div>
+    <div id="editor" style="display:none">
+      <div id="save-bar">
+        <span>⚠️ Unsaved changes</span>
+        <button class="btn-primary" onclick="doExport('auto')">💾 Export (keep format)</button>
+        <button class="btn-ghost" onclick="doExport('bin')">.bin</button>
+        <button class="btn-ghost" onclick="doExport('mib')">.mib</button>
+        <button class="btn-ghost" onclick="doExport('pat')">.pat</button>
+        <button class="btn-ghost" onclick="doExport('json')">JSON</button>
+      </div>
+
+      <!-- QUEST INFO -->
+      <div class="tab-panel active" id="tab-info">
+        <div class="card">
+          <div class="card-hdr">⚙️ Quest Parameters</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Quest Number</label><input id="f-qnum" type="number" min="0" max="65535"></div>
+              <div class="f"><label>Star Level</label><input id="f-star" type="number" min="1" max="10"></div>
+              <div class="f"><label>Quest Type (TaskType)</label>
+                <select id="f-qtype" onchange="markDirty()">
+                  <option value="1">0x01 – Slay</option>
+                  <option value="2">0x02 – Gather</option>
+                  <option value="4">0x04 – Hunt</option>
+                  <option value="8">0x08 – Special</option>
+                  <option value="16">0x10 – Treasure Hunt</option>
+                  <option value="129">0x81 – Slay [Elder Dragon]</option>
+                  <option value="136">0x88 – Special [Elder Dragon]</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+              <div class="f"><label>Additional (quest flags)</label><input id="f-additional" type="text" placeholder="0x00" style="font-family:var(--mono)"></div>
+              <div class="f"><label>Stage / Map</label><select id="f-mapid"></select></div>
+              <div class="f"><label>Special Conditions</label>
+                <select id="f-speccond">
+                  <option value="0">0x00 – None</option>
+                  <option value="1">0x01 – Min HR 2</option><option value="2">0x02 – Min HR 3</option>
+                  <option value="3">0x03 – Min HR 4</option><option value="4">0x04 – Min HR 5</option>
+                  <option value="5">0x05 – Min HR 6</option><option value="6">0x06 – Min HR 7</option>
+                  <option value="7">0x07 – Min HR 8</option><option value="8">0x08 – Min HR 9</option>
+                  <option value="9">0x09 – Great Sword only</option><option value="10">0x0A – Lance only</option>
+                  <option value="11">0x0B – Hammer only</option><option value="12">0x0C – Sword &amp; Shield only</option>
+                  <option value="13">0x0D – Gunlance only</option><option value="14">0x0E – Long Sword only</option>
+                  <option value="15">0x0F – Dual Blades only</option><option value="16">0x10 – Bowgun only</option>
+                  <option value="17">0x11 – Hunting Horn only</option><option value="18">0x12 – Bow only</option>
+                  <option value="19">0x13 – No armor</option>
+                  <option value="20">0x14 – 2 players required</option>
+                  <option value="21">0x15 – 2 HR4+ players</option>
+                </select></div>
+              <div class="f"><label>Target Count</label><input id="f-targetcount" type="number" min="0" max="2">
+                <span class="hint">1=target0 only, 2=both targets</span>
+              </div>
+              <div class="f"><label>Training Data Ptr</label><input id="f-trainingptr" type="text" placeholder="0x00000000" style="font-family:var(--mono)">
+                <span class="hint">0x00000000 = none. Equipment restrictions for training quests.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">💰 Economy</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Contract Fee (z)</label><input id="f-fee" type="number" min="0" max="99999"></div>
+              <div class="f"><label>Reward Money (z)</label><input id="f-reward" type="number" min="0" max="9999999"></div>
+              <div class="f">
+                <label>Cart Penalty (z) &nbsp;<span id="penalty-badge" class="badge" style="display:none"></span></label>
+                <input id="f-penalty" type="number" min="0" max="4294967295">
+                <span class="warn-hint" id="penalty-hint">⚠️ Value looks invalid (high bytes non-zero). Shown as-is — may be a broken/event quest. The low 16 bits = <span id="penalty-lo"></span>z</span>
+              </div>
+              <div class="f"><label>Guild Points</label><input id="f-gp" type="number" min="0" max="99999"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">⏱ Time &amp; Difficulty</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Quest Time (minutes)</label><input id="f-time" type="number" min="1" max="999" step="0.5"><span class="hint" id="time-raw"></span></div>
+              <div class="f"><label>Carving Difficulty</label>
+                <select id="f-carve" onchange="markDirty()">
+                  <option value="0">0 – Village</option><option value="1">1 – Low Rank</option>
+                  <option value="2">2 – High Rank</option><option value="3">3 – Treasure Hunt</option>
+                  <option value="4">4 – Training</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+              <div class="f"><label>Difficulty</label>
+                <select id="f-difficulty" onchange="markDirty()">
+                  <option value="0">0 – Normal</option><option value="1">1 – Weakened</option><option value="2">2 – Strengthened</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+              <div class="f"><label>Arrival Position</label>
+                <select id="f-arrive" onchange="markDirty()">
+                  <option value="0">0 – Camp</option><option value="1">1 – Random</option><option value="2">2 – Special (Cutscene)</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">🏔️ Boss Size &amp; Shape</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Monster Size <span class="hint" style="font-size:10px">(stored as hex)</span></label><input id="f-bshape" type="number" min="0" max="65535" placeholder="107" oninput="document.getElementById('bshape-hex').textContent='0x'+(parseInt(this.value)||0).toString(16).toUpperCase().padStart(4,'0')"><span class="hint" id="bshape-hex"></span></div>
+              <div class="f"><label>Size Table</label>
+                <select id="f-bsize" onchange="markDirty()">
+                  <option value="0">0) Fixed</option><option value="1">1) 0% to 5%</option>
+                  <option value="2">2) 0% to 15%</option><option value="3">3) -5% to 14%</option>
+                  <option value="4">4) -15% to 25%</option>
+                  <option value="custom">Custom...</option>
+                </select></div>
+              <div class="f"><label>Boss Strength (0–15)</label><input id="f-bstr" type="number" min="0" max="15">
+                <span class="hint">0 = default. Higher = stronger.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">📦 Supply State</div>
+          <div class="note">Controls when supply items appear in the box.</div>
+          <div class="card-body">
+            <div class="fg3">
+              <div class="f"><label>Rationing Mode</label>
+                <select id="f-ratmode" onchange="markDirty()">
+                  <option value="0">0 – Immediate</option><option value="1">1 – Random</option><option value="2">2 – On Kill</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+              <div class="f"><label>Rationing Conditions</label><input id="f-ratcond" type="text" placeholder="0x00" style="font-family:var(--mono)"><span class="hint">Monster code when mode=2</span></div>
+              <div class="f"><label>Condition Quantity</label><input id="f-ratqty" type="number" min="0" max="255"><span class="hint">Monster qty when mode=2</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">🔄 Small Monster Changes (questAreaChange)</div>
+          <div class="note">Triggers that swap small monster configurations mid-quest. ChangeCondition: 0=None, 1=On Kill, 2=On Gather. Sequence#: 0=Initial, 1=Change1, 2=Change2.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Change Condition</th><th>Target ID (dec)</th><th>Qty</th><th>Sequence #</th><th></th></tr></thead>
+              <tbody id="tb-qac"></tbody>
+            </table>
+            <button class="btn-add" style="margin-top:10px" onclick="addQacRow()">+ Add Change Row</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEXT FIELDS -->
+      <div class="tab-panel" id="tab-text">
+        <div class="card">
+          <div class="card-hdr" style="display:flex;align-items:center;gap:12px">📝 Quest Text
+            <label style="margin-left:auto;font-size:11px;font-weight:normal;display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="checkbox" id="f2-eu-toggle" onchange="toggleEUMode('mhf2',this.checked)"> EU Multi-Language
+            </label></div>
+          <div class="note">Strings are written in-place up to their current allocation. If you need more space, the tool will <b>relocate</b> the string within its global max (title≤42, success/fail≤84, monster≤64, detail≤256, client≤42 bytes). Newlines: use <code>\n</code> in the textarea — it is stored as byte 0x0A.</div>
+          <div class="card-body">
+            <div id="f2-eu-langs"></div>
+            <div class="fg">
+              <div class="f fw"><label>Quest Title &nbsp;<span id="b-name" class="badge bi"></span></label>
+                <input id="f-tname" type="text" oninput="updateBadge('tname','name',MAX_BYTES.name)"></div>
+              <div class="f fw"><label>Success Condition &nbsp;<span id="b-success" class="badge bi"></span></label>
+                <textarea id="f-tsuccess" rows="2"
+            oninput="updateBadge('tsuccess','success',MAX_BYTES.success)"></textarea><span class="hint">Use \n for multiple lines (e.g. "Slay Tigrex\nDeliver Paw Pass Ticket")</span></div>
+              <div class="f fw"><label>Failure Text &nbsp;<span id="b-failure" class="badge bi"></span></label>
+                <textarea id="f-tfailure" rows="2" oninput="updateBadge('tfailure','failure',MAX_BYTES.failure)"></textarea>
+                <span class="hint">Use \n for line breaks (e.g. "Reward Zero\nTime Over")</span></div>
+              <div class="f fw"><label>Main Monster / Sub-header &nbsp;<span id="b-monster" class="badge bi"></span></label>
+                <textarea id="f-tmonster" rows="2" oninput="updateBadge('tmonster','monster',MAX_BYTES.monster)"></textarea>
+                <span class="hint">Use \n for multiple lines (e.g. "Rathalos\nRathian")</span></div>
+              <div class="f fw"><label>Client Name &nbsp;<span id="b-client" class="badge bi"></span></label>
+                <input id="f-tclient" type="text" oninput="updateBadge('tclient','client',MAX_BYTES.client)"></div>
+              <div class="f fw"><label>Quest Description &nbsp;<span id="b-desc" class="badge bi"></span></label>
+                <textarea id="f-tdesc" rows="6" oninput="updateBadge('tdesc','desc',MAX_BYTES.desc)"></textarea>
+                <span class="hint">Use \n for line breaks</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARGETS -->
+      <div class="tab-panel" id="tab-targets">
+        <div class="card">
+          <div class="card-hdr">🎯 Quest Targets</div>
+          <div class="note">Condition: 1=Slay, 2=Deliver, 4=Slay[Elder Dragon]. Additional: when cond=4, 0x0180=inherited HP.</div>
+          <div class="card-body">
+            <div class="fg" style="margin-bottom:8px">
+              <div class="f"><label>Carry Damage (Elder Dragon)</label><input id="f-carrydmg" type="checkbox"><span class="hint">Sets target0 condition=4, additional=0x0180 (inherited HP)</span></div>
+            </div>
+            <table>
+              <thead><tr><th>#</th><th>Condition</th><th>Additional (hex)</th><th>Target (Monster / Item)</th><th>Quantity</th></tr></thead>
+              <tbody id="tb-targets"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPPLY -->
+      <div class="tab-panel" id="tab-supply">
+        <div class="card">
+          <div class="card-hdr">🎒 Supply Box Items</div>
+          <div class="note">Terminated by 0x0000 (2 bytes only). Max ~30 items. Item IDs in hex.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Item ID (hex)</th><th>Quantity</th><th></th></tr></thead>
+              <tbody id="tb-supply"></tbody>
+            </table>
+            <button class="btn-add" style="margin-top:10px" onclick="addSupplyRow()">+ Add Item</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REWARDS -->
+      <div class="tab-panel" id="tab-rewards">
+        <div class="card">
+          <div class="card-hdr">💰 Quest Reward Blocks</div>
+          <div class="note">Each block has a condition code and a list of entries. Probabilities per block should sum to ~100. Item IDs in hex.</div>
+          <div id="rewards-body"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <button class="btn-add" onclick="addRewardBlock()">+ Add Reward Block</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOSS -->
+      <div class="tab-panel" id="tab-boss">
+        <div class="card"><div class="card-hdr">🐉 Boss / Large Monster Spawns</div>
+          <div class="note">Each entry = 60 bytes. The monster ID, spawn position, and stats are all set per entry. The species ID list and data entries are rebuilt and relocated automatically on export.</div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Monster</th><th>State</th><th>Count</th><th>Power</th><th>Attr1</th><th>Spawn Area</th><th>X</th><th>Y</th><th>Z</th><th>Orientation</th><th>SeqNum</th><th>Size</th><th>HP</th><th></th></tr></thead>
+              <tbody id="tb-bossdetail"></tbody>
+            </table>
+          </div>
+          <div style="margin:0 14px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn-add" onclick="addBossDetail()">+ Add Monster</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer">
+              <input type="checkbox" id="f-babyboom" onchange="f2ToggleBabyBoom(this.checked)">
+              ∞ Continuous / Infinite Spawn
+            </label>
+            <span id="f2-boss-count" class="note" style="margin-left:8px"></span>
+            <span class="hint" style="flex-basis:100%;margin:0">Re-spawns the listed monsters until the timer ends. Sets the wave-loop script, marks the quest as Survival, and sets each monster's stage to roaming (251).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SMALL MONSTERS -->
+      <div class="tab-panel" id="tab-smallmon">
+        <div class="note" style="padding:8px 14px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)">
+          Three monster config sets: <b>Initial</b> (default at quest start), <b>Change 1</b> and <b>Change 2</b> (swapped in by questAreaChange triggers). Each config has multiple areas; each area has 4 spawn ID slots + per-entry spawn details (60 bytes each).
+        </div>
+        <div id="sm-sets-wrap"></div>
+      </div>
+
+      <!-- GATHERING -->
+      <div class="tab-panel" id="tab-gather">
+        <div class="card">
+          <div class="card-hdr">🌿 Gathering Information</div>
+          <div class="note">
+            Gathering areas (0x398): up to 2 Area Information blocks, each pointing into the Gathering Point Data table (0x310).
+            Each Gathering Point has: X/Z/Y position, gathering code (index into point data), and frequency upper limit.
+            Point Data entries hold per-item probability+item code tables, terminated by 0xFFFF.
+          </div>
+          <div id="gather-wrap"></div>
+        </div>
+      </div>
+
+      <!-- TRAINING -->
+      <div class="tab-panel" id="tab-training" style="display:none">
+        <div class="card">
+          <div class="card-hdr">🏟️ Training Equipment Sets</div>
+          <div class="note">5 equipment sets for training quests. Each set has a weapon, 5 armor pieces with decorations, and 20 supply items. Only present when Training Data Ptr is non-zero.</div>
+          <div class="card-body" id="f2-train-body"></div>
+        </div>
+      </div>
+
+      <!-- FIXED INFO -->
+      <div class="tab-panel" id="tab-fixed">
+        <div class="card">
+          <div class="card-hdr">🔒 Fixed Information (0x200)</div>
+          <div class="note">This block is read-only in virtually all quests — the comment in the template says "All quests seem to use 1B". Shown here for reference; editing is allowed but rarely needed.</div>
+          <div class="card-body">
+            <div class="fg">
+              <div class="f"><label>Fixed Value (u32 @ 0x200)</label><input id="f-fixed-val" type="text" style="font-family:var(--mono)"><span class="hint">Always 0x1B in normal quests</span></div>
+              <div class="f"><label>Unknown u16 @ 0x208</label><input id="f-fixed-unk" type="text" style="font-family:var(--mono)"><span class="hint">Usually 0x0003</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">🔗 Section Pointers (read-only)</div>
+          <div class="note">Header pointer values as loaded. These are resolved automatically and shown for debugging.</div>
+          <div class="card-body">
+            <div class="fg" id="ptr-display" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEX -->
+      <!-- ═══ MHFU PANELS ═══ -->
+      <div class="tab-panel mhfu-only" id="mhfu-tab-info" style="display:none">
+        <div class="card"><div class="card-hdr">⚙️ Quest Parameters</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Quest Number</label><input id="fu-qnum" type="number" min="0" max="99999"></div>
+          <div class="f"><label>Star Level</label><input id="fu-star" type="number" min="1" max="11"></div>
+          <div class="f"><label>Quest Type</label>
+            <select id="fu-qtype-sel" onchange="fuSyncQType()">
+              <option value="0x00000001">Slay</option>
+              <option value="0x00004001">Slay (Boss)</option>
+              <option value="0x00080002">Gather</option>
+              <option value="0x00004004">Hunt</option>
+              <option value="0x00284004">Slay Many</option>
+              <option value="0x00404004">Hunt (Multi Wyvern)</option>
+              <option value="0x00004008">Special</option>
+              <option value="0x00004010">Treasure Hunt</option>
+              <option value="0x00004081">Slay [Elder Dragon]</option>
+              <option value="0x00004088">Special [Elder Dragon]</option>
+              <option value="custom">— Custom (hex) —</option>
+            </select></div>
+          <div class="f"><label>Quest Type (hex)</label><input id="fu-qtype" type="text" placeholder="0x00004004" style="font-family:var(--mono)" oninput="fuSyncQTypeFromHex()">
+            <span class="hint">Full u32 value</span></div>
+          <div class="f"><label>Stage / Map</label><select id="fu-mapid"></select></div>
+          <div class="f"><label>Special Conditions</label>
+            <select id="fu-speccond">
+              <option value="0">0x00 – None</option>
+              <option value="1">0x01 – Min HR 2</option><option value="2">0x02 – Min HR 3</option>
+              <option value="3">0x03 – Min HR 4</option><option value="4">0x04 – Min HR 5</option>
+              <option value="5">0x05 – Min HR 6</option><option value="6">0x06 – Min HR 7</option>
+              <option value="7">0x07 – Min HR 8</option><option value="8">0x08 – Min HR 9</option>
+              <option value="9">0x09 – Great Sword only</option><option value="10">0x0A – Lance only</option>
+              <option value="11">0x0B – Hammer only</option><option value="12">0x0C – Sword &amp; Shield only</option>
+              <option value="13">0x0D – Gunlance only</option><option value="14">0x0E – Long Sword only</option>
+              <option value="15">0x0F – Dual Blades only</option><option value="16">0x10 – Bowgun only</option>
+              <option value="17">0x11 – Hunting Horn only</option><option value="18">0x12 – Bow only</option>
+              <option value="19">0x13 – No armor</option>
+              <option value="20">0x14 – 2 players required</option>
+              <option value="21">0x15 – 2 HR4+ players</option>
+            </select></div>
+          <div class="f"><label>Target Count</label><input id="fu-targetcount" type="number" min="0" max="2">
+            <span class="hint">Number of distinct quest targets (1 or 2)</span></div>
+          <div class="f"><label>Quest Mode</label>
+            <select id="fu-trainingptr" onchange="markDirty()">
+              <option value="0x00000000">Regular Quest</option>
+              <option value="training">Training / Arena Quest</option>
+            </select>
+            <span class="hint">Training/Arena quests include equipment sets</span></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">💰 Economy</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Contract Fee (z)</label><input id="fu-fee" type="number" min="0" max="99999"></div>
+          <div class="f"><label>Reward Money (z)</label><input id="fu-reward" type="number" min="0" max="9999999"></div>
+          <div class="f"><label>Cart Penalty (z)</label><input id="fu-penalty" type="number" min="0" max="9999999"></div>
+          <div class="f"><label>HRP Success</label><input id="fu-hrpsucc" type="number" min="0" max="9999"></div>
+          <div class="f"><label>HRP Failure</label><input id="fu-hrpfail" type="number" min="0" max="9999"></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">⏱ Time &amp; Difficulty</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Quest Time (minutes)</label><input id="fu-time" type="number" min="1" max="999" step="0.5"><span class="hint" id="fu-time-raw"></span></div>
+          <div class="f"><label>Carving Difficulty</label>
+            <select id="fu-carve">
+              <option value="0">0 – Village</option><option value="1">1 – Low Rank</option>
+              <option value="2">2 – High Rank</option><option value="3">3 – Treasure Hunt</option>
+              <option value="4">4 – Training</option>
+            </select></div>
+          <div class="f"><label>Difficulty</label>
+            <select id="fu-difficulty">
+              <option value="0">0 – Normal</option><option value="1">1 – Weakened</option><option value="2">2 – Strengthened</option>
+            </select></div>
+          <div class="f"><label>Attack Roll (0–31)</label><input id="fu-attackroll" type="number" min="0" max="31"><span class="hint">Stored in [0x4B]</span></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">🏔️ Boss Size &amp; Shape</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Monster Size Modifier</label><input id="fu-monsize" type="number" min="0"></div>
+          <div class="f"><label>Size Table</label>
+            <select id="fu-bsize">
+              <option value="0">0) Fixed</option><option value="1">1) 0% to 5%</option>
+              <option value="2">2) 0% to 15%</option><option value="3">3) -5% to 14%</option>
+              <option value="4">4) -15% to 25%</option>
+            </select></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">📦 Supply State</div>
+          <div class="note">Controls when supply items appear in the box.</div>
+          <div class="card-body"><div class="fg3">
+            <div class="f"><label>Supply Condition</label>
+              <select id="fu-supplycond">
+                <option value="0">0 – Immediate</option><option value="1">1 – Random</option><option value="2">2 – On Kill</option>
+              </select></div>
+          </div></div></div>
+        <div class="card"><div class="card-hdr">🗺️ Spawn</div><div class="card-body"><div class="fg3">
+          <div class="f"><label>Arrival Position</label>
+            <select id="fu-spawn">
+              <option value="0">0 – Camp</option><option value="1">1 – Random</option><option value="2">2 – Special (Cutscene)</option>
+            </select></div>
+          <div class="f"><label>Unknown 6 <span class="hint">[0x49]</span></label>
+            <input id="fu-arrive" type="number" min="0" max="255">
+            </div>
+          <div class="f"><label>Rank</label><select id="fu-rank">
+            <option value="0">0 – Village</option><option value="1">1 – Low</option><option value="2">2 – High</option>
+            <option value="3">3 – G Low</option><option value="4">4 – G High</option>
+            <option value="5">5 – G Special</option>
+          </select></div>
+        </div></div></div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-text" style="display:none">
+        <div class="card"><div class="card-hdr" style="display:flex;align-items:center;gap:12px">📝 Quest Text
+          <label style="margin-left:auto;font-size:11px;font-weight:normal;display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="fu-eu-toggle" onchange="toggleEUMode('mhfu',this.checked)"> EU Multi-Language
+          </label></div>
+          <div class="note">All 7 language slots point to the same text block. Editing here updates all of them.</div>
+          <div class="card-body"><div id="fu-eu-langs"></div><div class="fg fw">
+            <div class="f fw"><label>Title <span id="fu-b-title" class="badge bi"></span></label><input id="fu-title" type="text" oninput="fuBadge('title',fuState.strCapacity.title)"></div>
+            <div class="f fw"><label>Goal / Success <span id="fu-b-goal" class="badge bi"></span></label><textarea id="fu-goal" rows="2" oninput="fuBadge('goal',fuState.strCapacity.goal)"></textarea></div>
+            <div class="f fw"><label>Failure Text <span id="fu-b-fail" class="badge bi"></span></label><textarea id="fu-fail" rows="2" oninput="fuBadge('fail',fuState.strCapacity.fail)"></textarea></div>
+            <div class="f fw"><label>Description <span id="fu-b-details" class="badge bi"></span></label><textarea id="fu-details" rows="6" oninput="fuBadge('details',fuState.strCapacity.details)"></textarea></div>
+            <div class="f fw"><label>Monster Sub-header <span id="fu-b-monsters" class="badge bi"></span></label><textarea id="fu-monsters" rows="2" oninput="fuBadge('monsters',fuState.strCapacity.monsters)"></textarea></div>
+            <div class="f fw"><label>Client <span id="fu-b-client" class="badge bi"></span></label><input id="fu-client" type="text" oninput="fuBadge('client',fuState.strCapacity.client)"></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-targets" style="display:none">
+        <div class="card"><div class="card-hdr">🎯 Targets</div>
+          <div class="note">Main target monster and required count.</div>
+          <div class="card-body"><div class="fg">
+            <div class="f"><label>Target Monster</label><div id="fu-target-pick"></div></div>
+            <div class="f"><label>Target Count</label><input id="fu-targetnum" type="number" min="1" max="10"></div>
+            <div class="f"><label>Carry Damage (Elder Dragon)</label><input id="fu-carrydmg" type="checkbox"><span class="hint">Inherited HP — damage carries across quest areas</span></div>
+            <div class="f"><label>Arena Data</label>
+              <select id="fu-arenaptr" onchange="markDirty()">
+                <option value="0">No Arena Data</option>
+                <option value="arena">Has Arena Equipment Sets</option>
+              </select>
+              <span class="hint">Arena/training quests include equipment loadouts</span></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-supply" style="display:none">
+        <div class="card"><div class="card-hdr">🎒 Supply Box</div>
+          <div class="note">Item entries given to the hunter at quest start. Add or remove freely — the file is rebuilt on export.</div>
+          <div class="card-body"><table><thead><tr><th>#</th><th>Item</th><th>Amount</th><th></th></tr></thead><tbody id="fu-supply-tbody"></tbody></table>
+            <button class="btn-add" style="margin-top:10px" onclick="fuAddSupplyRow()">+ Add Item</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-rewards" style="display:none">
+        <div class="card"><div class="card-hdr">💰 Rewards</div>
+          <div class="note">Reward blocks (slots). Each block holds chance/item/amount rows. Add or remove blocks and rows freely — the file is rebuilt on export.</div>
+          <div class="card-body" id="fu-reward-body"></div>
+          <button class="btn-add" style="margin:0 14px 14px" onclick="fuAddRewardBlock()">+ Add Reward Block</button>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-boss" style="display:none">
+        <div class="card"><div class="card-hdr">🐉 Boss / Large Monster Spawns</div>
+          <div class="note">Up to 10 large monsters. The species ID list and the 60-byte data entries are rebuilt and relocated automatically on export (same logic as the 2→9 monster expansion).</div>
+          <div class="card-body" id="fu-largemon-body"></div>
+          <div style="margin:0 14px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn-add" onclick="fuAddLargeMon()">+ Add Monster</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer">
+              <input type="checkbox" id="fu-babyboom" onchange="fuToggleBabyBoom(this.checked)">
+              ∞ Continuous / Infinite Spawn
+            </label>
+            <span class="hint" style="flex-basis:100%;margin:0">Re-spawns the listed monsters until the timer ends. Sets the wave-loop script, marks the quest as Survival, and sets each monster's stage to roaming (251) with its Qty as the pool size.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-smallmon" style="display:none">
+        <div class="card"><div class="card-hdr">🐾 Small Monsters</div>
+          <div class="note">Per-area small monster spawns (StageID + species + data entries). Add areas and entries freely; rebuilt on export.</div>
+          <div class="card-body" id="fu-smallmon-body"></div>
+          <button class="btn-add" style="margin:0 14px 14px" onclick="fuAddSmallArea()">+ Add Area</button>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-gather" style="display:none">
+        <div class="card"><div class="card-hdr">🌿 Gathering Nodes</div>
+          <div class="note">Node locations per area table (X/Y/Z, item table index, node type). Terminated by X = -1.0.</div>
+          <div class="card-body" id="fu-gathernodes-body"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-arena" style="display:none">
+        <div class="card"><div class="card-hdr">🏟️ Training / Arena Equipment Sets</div>
+          <div class="note">5 equipment sets for training and arena quests. Each set has a weapon, 5 armor pieces with decorations, and 20 supply items. Only present when Arena PTR is non-zero.</div>
+          <div class="card-body" id="fu-arena-body"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhfu-only" id="mhfu-tab-fixed" style="display:none">
+        <div class="card"><div class="card-hdr">🔒 Fixed / Unknown Fields</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Unkn1 [0x2C]</label><input id="fu-unkn1" type="text" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Unkn2 [0x30]</label><input id="fu-unkn2" type="text" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Unkn3 [0x34]</label><input id="fu-unkn3" type="text" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Unkn7 [0x4A]</label><input id="fu-unkn7" type="number" min="0" max="255"></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">🔗 Pointers (read-only)</div>
+          <div class="card-body" id="fu-ptrs-body" style="font-family:var(--mono);font-size:12px;line-height:2;color:var(--muted)"></div>
+        </div>
+      </div>
+      <!-- ═══ end MHFU panels ═══ -->
+
+      <!-- ═══ MHF1 panels ═══ -->
+      <div class="tab-panel mhf1-only" id="mhf1-tab-info">
+        <div class="card"><div class="card-hdr">⚙️ Quest Parameters</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Quest Number</label><input id="f1-qnum" type="number" min="0" max="65535"></div>
+          <div class="f"><label>Star Level</label><input id="f1-star" type="number" min="1" max="10"></div>
+          <div class="f"><label>Quest Type</label>
+            <select id="f1-qtype">
+              <option value="1">0x01 – Slay</option>
+              <option value="2">0x02 – Gather</option>
+              <option value="4">0x04 – Hunt / Deliver / Capture</option>
+              <option value="8">0x08 – Special</option>
+              <option value="9">0x09 – Slay + Special</option>
+              <option value="16">0x10 – Treasure Hunt</option>
+            </select>
+            <span class="hint">Capture uses 0x04 + state logic codes 0x1C/0x23</span></div>
+          <div class="f"><label>Background Sound</label><input id="f1-bgsound" type="text" placeholder="0x00" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Stage / Map</label><select id="f1-mapid"></select></div>
+          <div class="f"><label>Join Conditions</label>
+            <select id="f1-speccond">
+              <option value="0">0x00 – None</option>
+              <option value="1">0x01 – HR 2+</option><option value="2">0x02 – HR 3+</option>
+              <option value="3">0x03 – HR 4+</option><option value="4">0x04 – HR 5+</option>
+              <option value="24">0x18 – Great Sword only</option>
+              <option value="25">0x19 – Lance only</option>
+              <option value="26">0x1A – Hammer only</option>
+              <option value="27">0x1B – Sword &amp; Shield only</option>
+              <option value="28">0x1C – Bowgun only</option>
+              <option value="35">0x23 – No armor</option>
+              <option value="53">0x35 – Dual Blades only</option>
+              <option value="60">0x3C – 2 hunters required</option>
+            </select></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">💰 Economy</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Contract Fee (z)</label><input id="f1-fee" type="number" min="0" max="99999"></div>
+          <div class="f"><label>Reward Money (z)</label><input id="f1-reward" type="number" min="0" max="9999999"></div>
+          <div class="f"><label>Cart Penalty (z)</label><input id="f1-penalty" type="number" min="0" max="9999999"></div>
+          <div class="f"><label>HRP Reward</label><input id="f1-hrp" type="number" min="0" max="99999"></div>
+          <div class="f"><label>HRP Switch</label><input id="f1-hrpswitch" type="text" placeholder="0x00000000" style="font-family:var(--mono)"></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">⏱ Time &amp; Difficulty</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Quest Time (minutes)</label><input id="f1-time" type="number" min="1" max="999" step="0.5"><span class="hint" id="f1-time-raw"></span></div>
+          <div class="f"><label>Difficulty</label>
+            <select id="f1-difficulty" onchange="markDirty()">
+              <option value="0">0 – Low Rank</option><option value="1">1 – High Rank</option>
+              <option value="2">2 – G Rank</option><option value="3">3 – Training</option>
+              <option value="custom">Custom...</option>
+            </select></div>
+          <div class="f"><label>Arrival Position</label>
+            <select id="f1-arrive" onchange="markDirty()">
+              <option value="0">0 – Specified</option><option value="2">2 – Random</option>
+              <option value="custom">Custom...</option>
+            </select></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">🐲 Monster Settings</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Boss Size</label><input id="f1-bosssize" type="number" min="0" max="65535" value="100"><span class="hint">Default: 100</span></div>
+          <div class="f"><label>Boss Size Variation</label>
+            <select id="f1-sizemulti" onchange="markDirty()">
+              <option value="0">0) Fixed</option><option value="1">1) 0% to 5%</option>
+              <option value="2">2) 0% to 15%</option><option value="3">3) -5% to 14%</option>
+              <option value="4">4) -15% to 25%</option>
+              <option value="custom">Custom...</option>
+            </select></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">📦 Supply Mode</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Supply Mode</label>
+            <select id="f1-supplymode" onchange="markDirty()">
+              <option value="0">0 – Immediate</option><option value="1">1 – Random Delay</option>
+              <option value="2">2 – Conditional</option>
+              <option value="custom">Custom...</option>
+            </select></div>
+          <div class="f"><label>Supply Condition (monster code)</label><input id="f1-supplycond" type="number" min="0" max="255"></div>
+          <div class="f"><label>Supply Condition Qty</label><input id="f1-supplycondqty" type="number" min="0" max="255"></div>
+        </div></div></div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-text">
+        <div class="card"><div class="card-hdr" style="display:flex;align-items:center;gap:12px">📝 Quest Strings
+          <label style="margin-left:auto;font-size:11px;font-weight:normal;display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="f1-eu-toggle" onchange="toggleEUMode('mhf1',this.checked)"> EU Multi-Language
+          </label></div><div class="card-body"><div id="f1-eu-langs"></div><div class="fg">
+          <div class="f"><label>Quest Name</label><input id="f1-name" type="text" oninput="markDirty()"></div>
+          <div class="f"><label>Success Description</label><textarea id="f1-success" rows="3" oninput="markDirty()"></textarea></div>
+          <div class="f"><label>Failure Description</label><textarea id="f1-failure" rows="3" oninput="markDirty()"></textarea></div>
+          <div class="f"><label>Quest Description</label><textarea id="f1-desc" rows="5" oninput="markDirty()"></textarea></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">💬 Hint Strings</div>
+          <div class="card-body" id="f1-hints-body"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-targets">
+        <div class="card"><div class="card-hdr">🎯 Quest Targets</div>
+          <div class="note">Fixed Info entries define quest objectives. Type determines behavior (Slay=0x02, Deliver=0x04, Kill Condition=0x24, etc.)</div>
+          <div class="card-body">
+            <table class="tbl"><thead><tr><th>#</th><th>Type</th><th>Target (Monster / Item)</th><th>Qty</th><th>Param</th><th>Raw (hex)</th><th></th></tr></thead>
+              <tbody id="f1-targets-tbody"></tbody>
+            </table>
+            <button class="btn-add" style="margin-top:10px" onclick="f1AddFixedEntry()">+ Add Entry</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-supply">
+        <div class="card"><div class="card-hdr">🎒 Supply Box Items</div>
+          <div class="note">Terminated by 0x0000 (2 bytes only). Item IDs in hex.</div>
+          <div class="card-body">
+            <table class="tbl"><thead><tr><th>#</th><th>Item ID (hex)</th><th>Quantity</th><th></th></tr></thead>
+              <tbody id="f1-supply-tbody"></tbody>
+            </table>
+            <button class="btn-add" style="margin-top:10px" onclick="f1AddSupplyRow()">+ Add Item</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-rewards">
+        <div class="card"><div class="card-hdr">💰 Quest Reward Blocks</div>
+          <div class="note">Each block has a condition code and a list of entries. Probabilities per block should sum to ~100. Item IDs in hex.</div>
+          <div id="f1-rewards-body"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="f1-reward-add-select" class="no-combo" style="font-size:12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:3px;padding:3px 6px"></select>
+            <button class="btn-add" onclick="var s=document.getElementById('f1-reward-add-select');if(s.value==='custom'){f1AddRewardBlock();}else{f1AddSpecialRewardBlock(parseInt(s.value));}">+ Add Selected Block</button>
+            <button class="btn-add" onclick="f1AddRewardBlock()" style="margin-left:8px">+ Add Custom Block</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-boss">
+        <div class="card"><div class="card-hdr">🐉 Boss / Large Monster Spawns</div>
+          <div class="note">Each entry = 60 bytes. Species ID list is auto-managed from detail entries on export. Spawn area uses F1 area IDs.</div>
+          <div class="card-body">
+            <table class="tbl"><thead><tr><th>#</th><th>Monster</th><th>State</th><th>Qty</th><th>Spawn Area</th><th>X</th><th>Z</th><th>Y</th><th>Orientation</th><th></th></tr></thead>
+              <tbody id="f1-bossdetail-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin:0 14px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn-add" onclick="f1AddBossDetail()">+ Add Monster</button>
+            <span id="f1-boss-count" class="note" style="margin-left:8px"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-smallmon">
+        <div class="note" style="padding:8px 14px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)">
+          Two monster config sets: <b>Initial</b> (at quest start) and <b>Change</b> (swapped in by triggers). Each config has multiple areas; each area has 4 species ID slots (auto-managed) + per-entry spawn details (60 bytes each).
+        </div>
+        <div id="f1-sm-wrap"></div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-gather">
+        <div class="card"><div class="card-hdr">🌿 Gathering Information</div>
+          <div class="note">Each area has gather nodes with X/Z/Y position, collection table ID, and frequency. Item tables define the loot per gather node. Terminated by BF800000 (-1.0f).</div>
+          <div id="f1-gather-wrap"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-training">
+        <div class="card">
+          <div class="card-hdr">🏟️ Training Quest Info</div>
+          <div class="card-body" id="f1-train-body"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel mhf1-only" id="mhf1-tab-fixed">
+        <div class="card"><div class="card-hdr">🔒 Header Fields</div><div class="card-body"><div class="fg">
+          <div class="f"><label>Task Status</label><input id="f1-fixedstatus" type="text" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Fixed Unk</label><input id="f1-fixedunk" type="text" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Unknown [0x1C]</label><input id="f1-unk1c" type="text" style="font-family:var(--mono)"></div>
+          <div class="f"><label>Unknown [0x28]</label><input id="f1-unk28" type="text" style="font-family:var(--mono)"></div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr">🔗 Pointers (read-only)</div>
+          <div class="card-body" id="f1-ptrs-body" style="font-family:var(--mono);font-size:12px;line-height:2;color:var(--muted)"></div>
+        </div>
+      </div>
+      <!-- ═══ end MHF1 panels ═══ -->
+
+      <div class="tab-panel" id="tab-hex">
+        <div class="card">
+          <div class="card-hdr">🔢 Hex View</div>
+          <div class="card-body" style="padding:8px"><div id="hex-edit-bar" style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:0 0 6px;display:none">Click any byte to edit · <kbd style="background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:2px">0-9 a-f</kbd> to type · <kbd style="background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:2px">Enter/Tab</kbd> next · <kbd style="background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:2px">Esc</kbd> cancel</div>
+<input id="hex-edit-inp" type="text" maxlength="2">
+<div id="hex-view">Load a file to view hex.</div></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-calc">
+        <div class="card">
+          <div class="card-hdr">🧮 Hex / Decimal Calculator</div>
+          <div class="card-body">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:start">
+              <div style="flex:1;min-width:200px">
+                <label style="display:block;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;margin-bottom:4px">Decimal</label>
+                <input id="calc-dec" type="text" placeholder="Enter decimal..." style="width:100%;padding:8px;font-size:16px;font-family:var(--mono);background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px" oninput="calcFromDec()">
+              </div>
+              <div style="flex:0 0 auto;align-self:center;font-size:20px;color:var(--muted);padding-top:16px">⇄</div>
+              <div style="flex:1;min-width:200px">
+                <label style="display:block;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;margin-bottom:4px">Hexadecimal</label>
+                <input id="calc-hex" type="text" placeholder="Enter hex (e.g. 0xFF)..." style="width:100%;padding:8px;font-size:16px;font-family:var(--mono);background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:3px" oninput="calcFromHex()">
+              </div>
+            </div>
+            <div id="calc-info" style="margin-top:12px;font-size:13px;color:var(--muted);font-family:var(--mono)"></div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+            <div style="font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;margin-bottom:8px">Quick Reference</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="calc-quick">
+              <table style="font-size:13px;font-family:var(--mono);border-collapse:collapse;width:100%">
+                <thead><tr style="color:var(--muted)"><th style="text-align:left;padding:2px 12px">Dec</th><th style="text-align:left;padding:2px 12px">Hex</th><th style="text-align:left;padding:2px 12px">Dec</th><th style="text-align:left;padding:2px 12px">Hex</th><th style="text-align:left;padding:2px 12px">Dec</th><th style="text-align:left;padding:2px 12px">Hex</th></tr></thead>
+                <tbody id="calc-ref"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-sizetable">
+        <div class="card">
+          <div class="card-hdr">📏 Monster Size Table
+            <span id="size-warn-badge" style="display:none;margin-left:12px;background:#b84010;color:#fff;padding:2px 10px;border-radius:10px;font-size:11px;animation:sizeBlink 2s ease-in-out infinite">⚠ Size exceeded!</span>
+          </div>
+          <div class="card-body" style="overflow-x:auto">
+            <div id="size-table-content"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-events">
+        <div class="card">
+          <div class="card-hdr">📦 EVENT.BIN Loader
+            <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <button class="sm-btn" onclick="document.getElementById('event-file-input').click()">Load EVENT.BIN</button>
+              <button class="sm-btn" onclick="eventSave()" id="event-save-btn" style="display:none">Save EVENT.BIN</button>
+              <input type="file" id="event-file-input" accept=".bin,.BIN" style="display:none" onchange="eventLoadFile(this.files[0])">
+            </span>
+          </div>
+          <div class="card-body">
+            <div id="event-info" style="font-size:12px;font-family:var(--mono);color:var(--muted);margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="event-toolbar" style="display:none">
+              <button class="sm-btn" onclick="eventExtractAll()">Extract All</button>
+              <button class="sm-btn" onclick="eventAddQuest()">+ Add Quest</button>
+            </div>
+            <div id="event-quest-list"></div>
+            <div id="event-empty" style="text-align:center;padding:40px;color:var(--muted)">Load an EVENT.BIN file to manage event quests.<br><br>
+              <span style="font-size:12px;font-family:var(--mono)">
+                F1: FDXDAT\EVENT.BIN<br>
+                F2: MHF2QST\EVENT.BIN<br>
+                FU: No event file yet
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-toolmode">
+        <div class="card">
+          <div class="card-hdr">🛡️ Tool Mode</div>
+          <div class="card-body" style="text-align:center;padding:40px">
+            <div id="toolmode-status" style="font-size:18px;font-weight:bold;margin-bottom:16px"></div>
+            <div id="toolmode-desc" style="font-size:13px;color:var(--muted);max-width:500px;margin:0 auto 24px;line-height:1.6"></div>
+            <button id="toolmode-toggle-btn" class="sm-btn" style="padding:8px 24px;font-size:14px" onclick="toggleToolMode()"></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Tool Mode: Advanced confirmation modal -->
+<div id="toolmode-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:2px solid var(--danger);border-radius:12px;padding:32px;max-width:440px;text-align:center">
+    <div style="font-size:24px;margin-bottom:12px">⚠️</div>
+    <div style="font-size:15px;font-weight:bold;color:var(--danger);margin-bottom:16px">You are about to cheat, and will be reported if you join online with this, do you really want to continue?</div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:20px">
+      <button class="sm-btn" style="padding:8px 24px" onclick="closeToolModeModal()">Go back</button>
+      <button class="sm-btn" style="padding:8px 24px;background:var(--danger);color:#fff" onclick="confirmAdvancedMode()">Continue</button>
+    </div>
+  </div>
+</div>
+<div id="statusbar">
+  <span class="sdot" id="sdot"></span><span id="stxt">No file loaded</span>
+  <span class="spacer"></span><span id="ssz"></span>
+</div>
+
+<script src="size_data.js?v=1"></script>
+<script src="shared.js?v=22"></script>
+<script src="mhf2.js?v=15"></script>
+<script src="mhfu.js?v=13"></script>
+<script src="mhf1.js?v=23"></script>
+<script src="init.js"></script>
+
+</body>
+</html>
