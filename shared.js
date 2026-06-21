@@ -2136,28 +2136,34 @@ const SAFE_SUPPLY = {
     {item:552,qty:1},{item:552,qty:1},{item:552,qty:1},{item:552,qty:1},
     {item:553,qty:3},{item:553,qty:3},{item:553,qty:3},{item:553,qty:3},
     {item:556,qty:2},{item:556,qty:2},{item:556,qty:2},{item:556,qty:2},
-    {item:554,qty:2},{item:554,qty:2},{item:554,qty:2},{item:554,qty:2}
+    {item:554,qty:2},{item:554,qty:2},{item:554,qty:2},{item:554,qty:2},
+    {item:22,qty:3},{item:22,qty:3},{item:22,qty:3},{item:22,qty:3},
+    {item:21,qty:3},{item:21,qty:3},{item:21,qty:3},{item:21,qty:3}
   ],
   mhf2: [
     {item:641,qty:1},{item:641,qty:1},{item:641,qty:1},{item:641,qty:1},
     {item:642,qty:3},{item:642,qty:3},{item:642,qty:3},{item:642,qty:3},
     {item:645,qty:2},{item:645,qty:2},{item:645,qty:2},{item:645,qty:2},
-    {item:643,qty:2},{item:643,qty:2},{item:643,qty:2},{item:643,qty:2}
+    {item:643,qty:2},{item:643,qty:2},{item:643,qty:2},{item:643,qty:2},
+    {item:22,qty:3},{item:22,qty:3},{item:22,qty:3},{item:22,qty:3},
+    {item:21,qty:3},{item:21,qty:3},{item:21,qty:3},{item:21,qty:3}
   ],
   mhfu: [
     {item:641,qty:1},{item:641,qty:1},{item:641,qty:1},{item:641,qty:1},
     {item:642,qty:3},{item:642,qty:3},{item:642,qty:3},{item:642,qty:3},
     {item:645,qty:2},{item:645,qty:2},{item:645,qty:2},{item:645,qty:2},
-    {item:643,qty:2},{item:643,qty:2},{item:643,qty:2},{item:643,qty:2}
+    {item:643,qty:2},{item:643,qty:2},{item:643,qty:2},{item:643,qty:2},
+    {item:22,qty:3},{item:22,qty:3},{item:22,qty:3},{item:22,qty:3},
+    {item:21,qty:3},{item:21,qty:3},{item:21,qty:3},{item:21,qty:3}
   ]
 };
 
 const SAFE_REWARD_ITEM = { mhf1: 159, mhf2: 193, mhfu: 193 };
 const SAFE_JOIN = { mhf1: 4, mhf2: 5, mhfu: 8 };
-const SAFE_REWARD_Z = 300;
-const SAFE_PENALTY_Z = 100;
-const SAFE_HRP_SUCC = 30;
-const SAFE_HRP_FAIL = 10;
+const SAFE_REWARD_Z = 3;
+const SAFE_PENALTY_Z = 1;
+const SAFE_HRP_SUCC = 3;
+const SAFE_HRP_FAIL = 1;
 
 function isSafeMode(){ return TOOL_MODE === 'safe'; }
 
@@ -2229,7 +2235,7 @@ function applySafeDefaults(){
   // Guild points (F2 only)
   if(gk === 'mhf2'){
     const gpEl = document.getElementById('f-gp');
-    if(gpEl) gpEl.value = 30;
+    if(gpEl) gpEl.value = 3;
   }
 
   // Economy: reward 300z, penalty 100z

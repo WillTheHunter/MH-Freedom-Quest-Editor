@@ -1725,11 +1725,9 @@ function buildNewF2Quest() {
   while (end > 0 && raw[end - 1] === 0) end--;
   end = (end + 3) & ~3;
   const d = raw.slice(0, end);
-  // Set unique quest ID to avoid EVENT.BIN conflicts
   const qi = d[4] | d[5]<<8 | d[6]<<16 | d[7]<<24;
   if (qi + 0x19 < d.length) {
-    const newId = 64000 + Math.floor(Math.random()*1000);
-    d[qi+0x18] = newId & 0xFF; d[qi+0x19] = (newId>>8) & 0xFF;
+    d[qi+0x18] = 60001 & 0xFF; d[qi+0x19] = (60001>>8) & 0xFF;
   }
   return d;
 }

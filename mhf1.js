@@ -1475,8 +1475,8 @@ function patchF1InPlace(m) {
     w32(0x18, newHdrOff);
   }
 
-  // Small monsters — rebuild and append at end (patchF1InPlace previously skipped this entirely)
-  {
+  // Small monsters — rebuild and append at end only when dirty
+  if (isDirty) {
     // First pass: measure sizes to compute final offsets
     const smInitSize = buildSmallMonBin(m.smallInitial, 0).length;
     const smChgSize = (m.smallChange && m.smallChange.length) ? buildSmallMonBin(m.smallChange, 0).length : 0;
@@ -1503,8 +1503,8 @@ function patchF1InPlace(m) {
     w32(0x14, qaOff);
   }
 
-  // Gathering — rebuild and append at end
-  {
+  // Gathering — rebuild and append at end only when dirty
+  if (isDirty) {
     const gatherOff = d.length;
     const gatherHeader = new Uint8Array(4 + 92*4);
     const gv = new DataView(gatherHeader.buffer);
@@ -1537,7 +1537,7 @@ function patchF1InPlace(m) {
   }
 
   // Language texts — append new language commBlocks+strings at end
-  if (m.langTexts) {
+  if (isDirty && m.langTexts) {
     const tcPtr = m.taskContentPtr;
     for (let li = 0; li < 7; li++) {
       const lt = m.langTexts[li];
@@ -1998,9 +1998,7 @@ const F1_QUEST_TPL = 'PAAAAGQBAACsDgAAuCsAALgNAAAIDQAAmA0AABUAAAAkKgAAkA4AAAIAAA
 function buildNewF1Quest(){
   const b64 = F1_QUEST_TPL;
   const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  // Set unique quest ID to avoid EVENT.BIN conflicts
   const qi = bin[0] | bin[1]<<8 | bin[2]<<16 | bin[3]<<24;
-  const newId = 64000 + Math.floor(Math.random()*1000);
-  bin[qi+30] = newId & 0xFF; bin[qi+31] = (newId>>8) & 0xFF;
+  bin[qi+30] = 60001 & 0xFF; bin[qi+31] = (60001>>8) & 0xFF;
   return bin;
 }

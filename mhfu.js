@@ -769,8 +769,6 @@ function applyChangesFU() {
   m.vdat.targetNum = clamp(parseInt(gv('fu-targetnum').value)||0,0,10);
   if (gv('fu-carrydmg').checked) {
     m.vdat.tgtCond=1; m.vdat.tgtAdd=0x0400; m.vdat.tgtPad=0x80;
-  } else {
-    m.vdat.tgtCond=1; m.vdat.tgtAdd=0x0101; m.vdat.tgtPad=0x02;
   }
 
   m.header.rank=clamp(parseInt(gv('fu-rank').value)||0,0,5);
@@ -1130,11 +1128,9 @@ function buildNewFUQuest() {
   const raw = Uint8Array.from(atob(FU_QUEST_TPL), c => c.charCodeAt(0));
   const d = new Uint8Array(raw.length);
   d.set(raw);
-  // Set unique quest ID to avoid EVENT.BIN conflicts
   const vd = d[0] | d[1]<<8 | d[2]<<16 | d[3]<<24;
   if (vd + 25 < d.length) {
-    const newId = 64000 + Math.floor(Math.random()*1000);
-    d[vd+24] = newId & 0xFF; d[vd+25] = (newId>>8) & 0xFF;
+    d[vd+24] = 60001 & 0xFF; d[vd+25] = (60001>>8) & 0xFF;
   }
   return d;
 }
