@@ -13,7 +13,6 @@ quest binaries (`.bin`, `.mib`, `.pat`).
 - **Hex viewer** with per-section color coding
 - **Hex/Decimal calculator** with quick-reference table
 - **Multiple export formats** - `.bin`, `.mib`, `.pat`, `.json`
-- **JSON import/export** for human-readable quest editing
 - **Smart dropdowns** with search and custom value entry for items, monsters, and maps
 
 ## Files
@@ -66,3 +65,14 @@ The loader auto-detects quest format (F1/F2/FU) and supports:
 - **Save** - rebuild and download the modified EVENT.BIN
 
 Maximum 50 quest slots per EVENT.BIN.
+
+
+## Credits:
+- Grender for the f1 and f2 quest templates
+- ViciousShadowVic for the quest files
+- IncognitoMan for the mhfu quests structure and info
+- Silverjolteon for the Event.bin and ID files
+- Barry1990 for the f1 quest structure additional info
+- snowyvernclaw for testing
+- authors of the p2ndG quest editor
+- Alexander Lancellott for the legal sizes for monsters
