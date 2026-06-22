@@ -622,6 +622,11 @@ async function doSave(format){
   }
   if (!D || !D.length) { alert('Nothing to export.'); return; }
 
+  if (D.length > EVT_SLOT) {
+    alert('Warning: quest size (' + D.length + ' bytes / 0x' + D.length.toString(16).toUpperCase() +
+      ') exceeds the maximum slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+      ' (' + EVT_SLOT + ' bytes).\n\nThis quest will be truncated if injected into EVENT.BIN.');
+  }
 
   // ── JSON export: human-readable dump of the parsed quest ──
   if (format === 'json') {
@@ -1908,6 +1913,11 @@ function eventReplaceQuest(idx) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const raw = new Uint8Array(e.target.result);
+      if (raw.length > EVT_SLOT) {
+        alert('Warning: file is ' + raw.length + ' bytes (0x' + raw.length.toString(16).toUpperCase() +
+          '), exceeding the max slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+          '. It will be truncated to fit.');
+      }
       const padded = new Uint8Array(EVT_SLOT);
       padded.set(raw.slice(0, Math.min(raw.length, EVT_SLOT)));
       eventSlots[idx] = {
@@ -1939,6 +1949,11 @@ function eventInsertQuest(idx) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const raw = new Uint8Array(e.target.result);
+      if (raw.length > EVT_SLOT) {
+        alert('Warning: file is ' + raw.length + ' bytes (0x' + raw.length.toString(16).toUpperCase() +
+          '), exceeding the max slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+          '. It will be truncated to fit.');
+      }
       const padded = new Uint8Array(EVT_SLOT);
       padded.set(raw.slice(0, Math.min(raw.length, EVT_SLOT)));
       const slot = {
@@ -1969,6 +1984,11 @@ function eventAddQuest() {
       const reader = new FileReader();
       reader.onload = function(e) {
         const raw = new Uint8Array(e.target.result);
+        if (raw.length > EVT_SLOT) {
+          alert('Warning: "' + file.name + '" is ' + raw.length + ' bytes (0x' + raw.length.toString(16).toUpperCase() +
+            '), exceeding the max slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+            '. It will be truncated to fit.');
+        }
         const padded = new Uint8Array(EVT_SLOT);
         padded.set(raw.slice(0, Math.min(raw.length, EVT_SLOT)));
         toAdd[fi] = {
