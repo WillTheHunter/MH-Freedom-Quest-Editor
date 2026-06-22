@@ -858,6 +858,8 @@ function serializeFU(m) {
 
   // Work on a growable copy of the original.
   let out = Array.from(m.raw); // byte array; we can push to grow
+  const origLen = out.length;
+  let eofContentEnd = 0; // tracks highest offset written by any EOF-append rebuild
   const vd = ru32Arr(out, 0x00);
 
   const w8  = (o,v)=>{ out[o]=v&0xFF; };
@@ -910,118 +912,178 @@ function serializeFU(m) {
 
   // ── 5. Patch supply in place IF the count is unchanged; else append at EOF ──
   patchFUListInPlaceOrAppend(out, m, w32, align4);
+  if (out.length > origLen) eofContentEnd = Math.max(eofContentEnd, out.length);
 
   // ── 5b. Patch gathering data in place ────────────────────────────────────────
   patchFUGatherInPlace(out, m);
 
-  // ── 5c. Rebuild small monsters at EOF ────────────────────────────────────────
-  // The old in-place patcher silently dropped new entries/areas because it could
-  // not grow beyond the original allocation.  Rebuild the entire block at EOF
-  // (same strategy used for large monsters) so additions always work.
-  if (isDirty && m.smallAreas && m.smallAreas.length) {
-    align4();
+  // ── 5c. Patch arena/training data in place ─────────────────────────────────
+  patchFUArenaInPlace(out, m);
 
-    // Phase 1: write spawn detail entries for each area at EOF
+  // ── 6a. Patch small monsters IN-PLACE with per-area splicing ─────────────────
+  // For each area whose monster count changed, splice bytes at the end of that
+  // area's spawn entries (insert for growth, remove for shrink). Then rewrite
+  // spawn entries, IDL lists, area-table pointers, and header pointers using the
+  // cumulative shift. Preserves all interleaved data (Unk20, etc.) byte-for-byte.
+  // Must run BEFORE section 6 (boss rebuild) so boss metadata is corrected.
+  let smDelta = 0;
+  if (isDirty && m.smallAreas && m.smallAreas.length && m.smMeta) {
     const areas = m.smallAreas;
-    areas.forEach(area => {
-      align4();
-      area._newDataOff = out.length;
-      (area.mons||[]).forEach(mn => {
-        const base = out.length;
-        for (let b=0;b<60;b++) out.push(0);
-        w16(base, mn.id); w16(base+2, mn.vari||0);
-        out[base+4]=mn.qty&0xFF; out[base+5]=mn.pow&0xFF;
-        out[base+6]=mn.a1&0xFF; out[base+7]=mn.a2&0xFF;
-        if(mn.dyn1) for(let j=0;j<20;j++) out[base+8+j]=(mn.dyn1[j]||0)&0xFF;
-        w32(base+28, mn.rot>>>0); wf(base+32, mn.x); wf(base+36, mn.y); wf(base+40, mn.z);
-        if(mn.dyn2) for(let j=0;j<16;j++) out[base+44+j]=(mn.dyn2[j]||0)&0xFF;
-      });
-      // 0xFFFF terminator
-      out.push(0xFF, 0xFF);
+    const raw = m.raw;
 
-      // Species slot IDs (4 × u32) — auto-derived from spawn entries
-      align4();
-      area._newIdlOff = out.length;
-      const seenIds = [];
-      (area.mons||[]).forEach(mn => { if(mn.id && mn.id!==0xFFFF && !seenIds.includes(mn.id)) seenIds.push(mn.id); });
-      for(let s=0;s<4;s++){
-        const v = s < seenIds.length ? seenIds[s] : 0xFFFFFFFF;
-        out.push(v&0xFF,(v>>>8)&0xFF,(v>>>16)&0xFF,(v>>>24)&0xFF);
+    // Phase 1: collect splices needed (in ORIGINAL file coordinates)
+    const splices = [];
+    const changedAreaDats = new Set();
+    areas.forEach(area => {
+      if (!area._origRaw) return;
+      const origDat = ru32Arr(area._origRaw, 12);
+      let origCount = 0, dp = origDat;
+      while (dp + 60 <= raw.length && (raw[dp]|(raw[dp+1]<<8)) !== 0xFFFF) { origCount++; dp += 60; }
+      area._origMonCount = origCount;
+      const newCount = (area.mons || []).length;
+      if (newCount !== origCount) {
+        splices.push({ offset: origDat + origCount * 60, byteDiff: (newCount - origCount) * 60 });
+        changedAreaDats.add(origDat);
       }
     });
 
-    // Phase 2: area header table (16 bytes per area + 16 byte zero terminator)
-    align4();
-    const areaTableOff = out.length;
-    areas.forEach(area => {
-      const base = out.length;
-      for(let b=0;b<16;b++) out.push(0);
-      w16(base, area.stageId);
-      // bytes 2-7: preserve original padding if available
-      if(area._origRaw) for(let b=2;b<8;b++) out[base+b]=area._origRaw[b];
-      w32(base+8, area._newIdlOff);
-      w32(base+12, area._newDataOff);
+    // Apply splices from highest offset to lowest so earlier offsets stay valid
+    splices.sort((a, b) => b.offset - a.offset);
+    splices.forEach(sp => {
+      if (sp.byteDiff > 0) {
+        const zeroes = new Array(sp.byteDiff).fill(0);
+        out.splice(sp.offset, 0, ...zeroes);
+      } else {
+        out.splice(sp.offset + sp.byteDiff, -sp.byteDiff);
+      }
     });
-    // 16-byte zero terminator (stageId == 0)
-    for(let b=0;b<16;b++) out.push(0);
 
-    // Phase 3: table pointer list (same count as original, all pointing to one table)
-    align4();
-    const ptrListOff = out.length;
-    const ptrCount = (m.smMeta && m.smMeta.ptrCount > 0) ? m.smMeta.ptrCount : 1;
-    for(let p=0;p<ptrCount;p++){
-      out.push(areaTableOff&0xFF,(areaTableOff>>>8)&0xFF,(areaTableOff>>>16)&0xFF,(areaTableOff>>>24)&0xFF);
+    // Cumulative shift at a given original-file offset
+    smDelta = splices.reduce((s, sp) => s + sp.byteDiff, 0);
+    const shiftAt = (origOff) => {
+      let s = 0;
+      for (const sp of splices) if (origOff >= sp.offset) s += sp.byteDiff;
+      return s;
+    };
+
+    // Phase 2: rewrite spawn entries + IDL only for areas that changed count;
+    // for all areas, update table entry pointers to shifted positions.
+    areas.forEach(area => {
+      if (!area._origRaw) return;
+      const origDat = ru32Arr(area._origRaw, 12);
+      const origIdl = ru32Arr(area._origRaw, 8);
+      const shDat = origDat + shiftAt(origDat);
+      const shIdl = origIdl + shiftAt(origIdl);
+
+      if (changedAreaDats.has(origDat)) {
+        (area.mons || []).forEach((mn, i) => {
+          const base = shDat + i * 60;
+          for (let b = 0; b < 60; b++) out[base + b] = 0;
+          w16(base, mn.id); w16(base+2, mn.vari||0);
+          w8(base+4, mn.qty); w8(base+5, mn.pow);
+          w8(base+6, mn.a1); w8(base+7, mn.a2);
+          if(mn.dyn1) for(let j=0;j<20;j++) out[base+8+j]=(mn.dyn1[j]||0)&0xFF;
+          w32(base+28, mn.rot>>>0); wf(base+32, mn.x); wf(base+36, mn.y); wf(base+40, mn.z);
+          if(mn.dyn2) for(let j=0;j<16;j++) out[base+44+j]=(mn.dyn2[j]||0)&0xFF;
+        });
+        w16(shDat + (area.mons||[]).length * 60, 0xFFFF);
+
+        // IDL: keep original entries, append new monster IDs before terminator
+        // Find where the old terminator is in the shifted IDL
+        let idlEnd = shIdl;
+        while (idlEnd + 4 <= out.length && ru32Arr(out, idlEnd) !== 0xFFFFFFFF) idlEnd += 4;
+        // Append IDs for each newly added monster
+        const addCount = (area.mons||[]).length - (area._origMonCount||0);
+        for (let a = 0; a < addCount; a++) {
+          const newMon = (area.mons||[])[(area._origMonCount||0) + a];
+          w32(idlEnd, newMon ? (newMon.id || 0) : 0);
+          idlEnd += 4;
+        }
+        w32(idlEnd, 0xFFFFFFFF);
+      }
+
+      // Update this area's table entry pointers (always, since splice shifted positions)
+      const shTbl = area._tblOff + shiftAt(area._tblOff);
+      w32(shTbl + 8, shIdl);
+      w32(shTbl + 12, shDat);
+    });
+
+    // Phase 3: update pointer list entries (each points to area table)
+    const origSmPtr = m.smMeta.ptrListOff;
+    const shSmPtr = origSmPtr + shiftAt(origSmPtr);
+    const ptrCount = m.smMeta.ptrCount > 0 ? m.smMeta.ptrCount : 1;
+    const firstTblPtr = ru32Arr(raw, origSmPtr);
+    const shFirstTbl = firstTblPtr + shiftAt(firstTblPtr);
+    for (let p = 0; p < ptrCount; p++) w32(shSmPtr + p * 4, shFirstTbl);
+
+    // Phase 4: update header pointers
+    w32(0x18, shSmPtr);
+    const origLgPtr = ru32Arr(raw, 0x14);
+    w32(0x14, origLgPtr + shiftAt(origLgPtr));
+
+    // Shift boss metadata so the subsequent boss rebuild uses corrected positions
+    if (m.lgMeta) {
+      m.lgMeta.datPtr  += shiftAt(m.lgMeta.datPtr);
+      m.lgMeta.idlPtr  += shiftAt(m.lgMeta.idlPtr);
+      m.lgMeta.tablePtr += shiftAt(m.lgMeta.tablePtr);
+      // Update all boss table entries' idl/dat pointers in the buffer
+      let tblOff = m.lgMeta.tablePtr;
+      for (let t = 0; t < 8 && tblOff + 16 <= out.length; t++) {
+        const u1 = ru32Arr(out, tblOff);
+        if (u1 === 0) break;
+        const oldIdl = ru32Arr(out, tblOff + 8);
+        const oldDat = ru32Arr(out, tblOff + 12);
+        w32(tblOff + 8, oldIdl + shiftAt(oldIdl));
+        w32(tblOff + 12, oldDat + shiftAt(oldDat));
+        tblOff += 16;
+      }
     }
-    // u32 zero terminator (low u16 == 0)
-    out.push(0,0,0,0);
-
-    // Repoint header
-    w32(0x18, ptrListOff);
   }
 
-  // ── 5d. Patch arena/training data in place ─────────────────────────────────
-  patchFUArenaInPlace(out, m);
-
-  // ── 6. Rebuild the LARGE-MONSTER block and append at EOF ────────────────────
-  // Only do this when something actually changed. Appending on every export
-  // repoints the header even when no edits were made, which corrupts quests.
+  // ── 6. Rebuild the LARGE-MONSTER block ──────────────────────────────────────
+  // The boss structure supports multiple 16-byte table entries, each with its own
+  // dat/idl pointers. When boss count changes, we rebuild the FIRST table's dat
+  // section in place (same approach as small-monster splicing). When only field
+  // values changed, we patch entries in place. When nothing changed, skip entirely.
   if (isDirty) {
-  // Build the list from the UI's flattened _lgList (falls back to model tables).
   const lgList = (m._lgList && m._lgList.length !== undefined)
     ? m._lgList
     : (function(){ const a=[]; (m.largeMons||[]).forEach(t=>t.mons.forEach(x=>a.push(x))); return a; })();
 
-  // Write entries and IDL in-place at their original locations. The boss table
-  // stays where it is and the header pointer (0x14) is NOT changed. This
-  // matches how the working 3rd-party editor operates. Only when the count
-  // grows beyond the available space do we relocate to the file's content-end.
+  // Detect whether bosses actually changed vs just isDirty from other edits
+  const bossFieldsChanged = lgList.some(mn => {
+    if (!mn._raw) return true;
+    const r = mn._raw;
+    return mn.id !== (r[0]|(r[1]<<8)) || mn.qty !== r[4] || mn.pow !== r[5]
+      || mn.a1 !== r[6] || mn.a2 !== r[7] || mn.stage !== (r[8]|(r[9]<<8))
+      || mn.rot !== ((r[28]|(r[29]<<8)|(r[30]<<16)|(r[31]<<24))>>>0)
+      || Math.abs(mn.x - new DataView(new Uint8Array(r.slice(32,36)).buffer).getFloat32(0,true)) > 0.001
+      || Math.abs(mn.y - new DataView(new Uint8Array(r.slice(36,40)).buffer).getFloat32(0,true)) > 0.001
+      || Math.abs(mn.z - new DataView(new Uint8Array(r.slice(40,44)).buffer).getFloat32(0,true)) > 0.001;
+  });
+  // Count original boss entries from parsed data (not buffer, which may be shifted)
+  let origBossCount = 0;
+  (m.largeMons || []).forEach(t => { origBossCount += t.mons.length; });
+  const bossCountChanged = lgList.length !== origBossCount;
+
   const origDat = m.lgMeta.datPtr;
   const origIdl = m.lgMeta.idlPtr;
   const origTbl = m.lgMeta.tablePtr;
-  const origCount = m.lgMeta.rawEntries.length;
 
-  // Always write entries starting at origDat. When count grows, entries overwrite
-  // the old IDL/table region and new IDL+table go right after — matching the
-  // working 3rd-party editor. When count fits, IDL and table stay in place.
-  {
-    const datBase = origDat > 0 ? origDat : origTbl + 14;
-    const entryEnd = datBase + lgList.length * 60;
-    const termEnd = entryEnd + 2; // FFFF data terminator
+  if (bossCountChanged) {
+    // Boss count changed — splice bytes inline (same approach as small monsters)
+    const spliceOff = origDat + origBossCount * 60;
+    const byteDiff = (lgList.length - origBossCount) * 60;
+    if (byteDiff > 0) out.splice(spliceOff, 0, ...new Array(byteDiff).fill(0));
+    else if (byteDiff < 0) out.splice(spliceOff + byteDiff, -byteDiff);
 
-    const idlStaysInPlace = origIdl > 0 && termEnd <= origIdl;
-    const newIdlBase = idlStaysInPlace ? origIdl : ((termEnd + 3) & ~3);
-    const idlEnd = newIdlBase + lgList.length * 4 + 4;
-    const tblStaysInPlace = idlStaysInPlace && idlEnd <= origTbl;
-    const newTblBase = tblStaysInPlace ? origTbl : ((idlEnd + 3) & ~3);
+    const bossShift = (off) => off >= spliceOff ? off + byteDiff : off;
 
-    // Ensure out array is large enough (table is 32 bytes)
-    while (out.length < newTblBase + 32) out.push(0);
-
-    // Write data entries at datBase
+    // Write all boss entries at origDat (unchanged position)
     lgList.forEach((mn, i) => {
       let e = (mn._raw && mn._raw.length === 60) ? mn._raw.slice()
             : (lgList.find(x=>x._raw)? lgList.find(x=>x._raw)._raw.slice() : new Array(60).fill(0));
-      const base = datBase + i * 60;
+      const base = origDat + i * 60;
       for (let b = 0; b < 60; b++) out[base + b] = e[b];
       w16(base+0, mn.id); w16(base+2, 0);
       w8(base+4, mn.qty); w8(base+5, mn.pow); w8(base+6, mn.a1); w8(base+7, mn.a2);
@@ -1029,38 +1091,53 @@ function serializeFU(m) {
       w32(base+28, mn.rot>>>0);
       wf(base+32, mn.x); wf(base+36, mn.y); wf(base+40, mn.z);
     });
-    w16(entryEnd, 0xFFFF); // data terminator
+    w16(origDat + lgList.length * 60, 0xFFFF);
 
-    // Fill gap between data terminator and IDL
-    for (let b = termEnd; b < newIdlBase; b++) out[b] = 0;
-
-    // Write IDL
-    lgList.forEach((mn, i) => {
-      const off = newIdlBase + i * 4;
-      out[off] = mn.id & 0xFF; out[off+1] = (mn.id >> 8) & 0xFF;
-      out[off+2] = 0; out[off+3] = 0;
-    });
-    // IDL terminator: full u32 0xFFFFFFFF
-    const idlTerm = newIdlBase + lgList.length * 4;
-    out[idlTerm] = 0xFF; out[idlTerm+1] = 0xFF; out[idlTerm+2] = 0xFF; out[idlTerm+3] = 0xFF;
-
-    // Fill gap between IDL end and table with 0xFF
-    for (let b = idlTerm + 4; b < newTblBase; b++) out[b] = 0xFF;
-
-    // Write/update table (32 bytes: 16 bytes fields + 16 bytes zero padding)
-    while (out.length < newTblBase + 32) out.push(0);
-    const tu1 = (m.largeMons[0] && m.largeMons[0].unkn1) ? m.largeMons[0].unkn1 : 1;
-    const tu2 = (m.largeMons[0] && m.largeMons[0].unkn2) ? m.largeMons[0].unkn2 : 0;
-    w32(newTblBase+0, tu1); w32(newTblBase+4, tu2);
-    w32(newTblBase+8, newIdlBase); w32(newTblBase+12, datBase);
-    for (let b = newTblBase+16; b < newTblBase+32; b++) out[b] = 0;
-
-    // Only repoint header if table moved
-    if (newTblBase !== origTbl) {
-      w32(0x14, newTblBase);
+    // Update IDL at shifted position
+    const shIdl = bossShift(origIdl);
+    const seenIds = [];
+    lgList.forEach(mn => { if(mn.id && mn.id!==0xFFFF && !seenIds.includes(mn.id)) seenIds.push(mn.id); });
+    for(let s = 0; s < 4; s++){
+      const v = s < seenIds.length ? seenIds[s] : 0xFFFFFFFF;
+      w32(shIdl + s*4, v);
     }
+
+    // Update each boss table header's idl and dat pointers
+    let tblOff = origTbl;
+    for (let t = 0; t < m.largeMons.length; t++) {
+      const shTbl = bossShift(tblOff);
+      const tblIdl = ru32Arr(out, shTbl + 8);
+      const tblDat = ru32Arr(out, shTbl + 12);
+      w32(shTbl + 8, bossShift(tblIdl));
+      w32(shTbl + 12, bossShift(tblDat));
+      tblOff += 16;
+    }
+
+    // Update header pointer
+    w32(0x14, bossShift(origTbl));
+    eofContentEnd = Math.max(eofContentEnd, out.length);
+  } else if (bossFieldsChanged) {
+    // Boss count same, only field values changed — patch entries in place
+    lgList.forEach((mn, i) => {
+      const base = origDat + i * 60;
+      if (base + 60 > out.length) return;
+      w16(base+0, mn.id); w16(base+2, 0);
+      w8(base+4, mn.qty); w8(base+5, mn.pow); w8(base+6, mn.a1); w8(base+7, mn.a2);
+      w16(base+8, mn.stage);
+      w32(base+28, mn.rot>>>0);
+      wf(base+32, mn.x); wf(base+36, mn.y); wf(base+40, mn.z);
+    });
   }
+  // If neither changed, boss data stays as-is (already correct from splice shift)
   } // end isDirty large-monster rebuild
+
+  // ── 7. Trim trailing archive/padding data ──────────────────────────────────
+  // BIN/MIB files carry archive padding past the last quest section.
+  // Truncate to the end of the last section that was rebuilt at EOF.
+  if (isDirty && eofContentEnd > 0) {
+    const ce = (eofContentEnd + 3) & ~3;
+    if (ce < out.length) out.length = ce;
+  }
 
   return new Uint8Array(out);
 }

@@ -601,7 +601,7 @@ async function doSave(format){
 
   // Safe mode: check crown sizes before export
   if(isSafeMode && isSafeMode()){
-    if(isNewQuest){ applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
+    if(isNewQuest){ applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
     if(!safeModeExportCheck()) return;
   }
 
@@ -1236,6 +1236,19 @@ function applyEUTexts(d, game) {
   else if (game === 'mhf2') fields = ['name','success','failure','desc','monster','client'];
   else fields = ['title','goal','fail','details','monsters','client'];
 
+  // Collect all string pointers to calculate safe write boundaries
+  const allStrPtrs = new Set();
+  for (let si = 0; si < euLangData.slots.length; si++) {
+    const cp = euLangData.slots[si];
+    if (!cp || cp + fields.length * 4 > d.length) continue;
+    for (let fi = 0; fi < fields.length; fi++) {
+      const sp = ru32(d, cp + fi * 4);
+      if (sp > 0 && sp < d.length) allStrPtrs.add(sp);
+    }
+  }
+  const sortedPtrs = [...allStrPtrs].sort((a, b) => a - b);
+
+  let truncated = false;
   container.querySelectorAll('[data-eu-lang][data-eu-field]').forEach(el => {
     const langIdx = +el.dataset.euLang;
     const field = el.dataset.euField;
@@ -1244,11 +1257,26 @@ function applyEUTexts(d, game) {
 
     const commPtr = euLangData.slots[langIdx];
     const strPtr = ru32(d, commPtr + fieldIdx * 4);
+    if (strPtr === 0 || strPtr >= d.length) return;
+
+    // Find the next string pointer after this one to determine capacity
+    let capacity = d.length - strPtr;
+    for (let i = 0; i < sortedPtrs.length; i++) {
+      if (sortedPtrs[i] > strPtr) { capacity = sortedPtrs[i] - strPtr; break; }
+    }
+    capacity = Math.max(0, capacity - 1); // reserve 1 byte for null terminator
+
     let text = el.value;
     const bytes = new TextEncoder().encode(text);
-    for (let i = 0; i < bytes.length && strPtr + i < d.length; i++) d[strPtr + i] = bytes[i];
-    if (strPtr + bytes.length < d.length) d[strPtr + bytes.length] = 0;
+    const writeLen = Math.min(bytes.length, capacity);
+    if (bytes.length > capacity) truncated = true;
+    for (let i = 0; i < writeLen; i++) d[strPtr + i] = bytes[i];
+    d[strPtr + writeLen] = 0;
+    // Clear any leftover bytes from the old string
+    let e = strPtr + writeLen + 1;
+    while (e < strPtr + capacity + 1 && e < d.length && d[e] !== 0) { d[e] = 0; e++; }
   });
+  if (truncated) alert('Warning: Some EU language texts were truncated because they exceeded the available space in the binary. EU text fields cannot be longer than the original text capacity.');
 }
 
 
@@ -2132,32 +2160,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
 var TOOL_MODE = sessionStorage.getItem('toolMode') || 'safe';
 
-const SAFE_SUPPLY = {
-  mhf1: [
-    {item:552,qty:1},{item:552,qty:1},{item:552,qty:1},{item:552,qty:1},
-    {item:553,qty:3},{item:553,qty:3},{item:553,qty:3},{item:553,qty:3},
-    {item:556,qty:2},{item:556,qty:2},{item:556,qty:2},{item:556,qty:2},
-    {item:554,qty:2},{item:554,qty:2},{item:554,qty:2},{item:554,qty:2},
-    {item:22,qty:3},{item:22,qty:3},{item:22,qty:3},{item:22,qty:3},
-    {item:21,qty:3},{item:21,qty:3},{item:21,qty:3},{item:21,qty:3}
-  ],
-  mhf2: [
-    {item:641,qty:1},{item:641,qty:1},{item:641,qty:1},{item:641,qty:1},
-    {item:642,qty:3},{item:642,qty:3},{item:642,qty:3},{item:642,qty:3},
-    {item:645,qty:2},{item:645,qty:2},{item:645,qty:2},{item:645,qty:2},
-    {item:643,qty:2},{item:643,qty:2},{item:643,qty:2},{item:643,qty:2},
-    {item:22,qty:3},{item:22,qty:3},{item:22,qty:3},{item:22,qty:3},
-    {item:21,qty:3},{item:21,qty:3},{item:21,qty:3},{item:21,qty:3}
-  ],
-  mhfu: [
-    {item:641,qty:1},{item:641,qty:1},{item:641,qty:1},{item:641,qty:1},
-    {item:642,qty:3},{item:642,qty:3},{item:642,qty:3},{item:642,qty:3},
-    {item:645,qty:2},{item:645,qty:2},{item:645,qty:2},{item:645,qty:2},
-    {item:643,qty:2},{item:643,qty:2},{item:643,qty:2},{item:643,qty:2},
-    {item:22,qty:3},{item:22,qty:3},{item:22,qty:3},{item:22,qty:3},
-    {item:21,qty:3},{item:21,qty:3},{item:21,qty:3},{item:21,qty:3}
-  ]
-};
+
+function _readSupplyItems() {
+  const gk = GAME_MODE || 'mhf2';
+  const items = [];
+  if (gk === 'mhf2') {
+    document.querySelectorAll('#tb-supply tr').forEach(tr => {
+      items.push({ item: readItemPick(tr) & 0xFFFF, qty: parseInt(tr.querySelector('.s-qty').value) || 1 });
+    });
+  } else if (gk === 'mhfu') {
+    if (typeof fuCommitSupply === 'function') fuCommitSupply();
+    (fuModel && fuModel.supply || []).forEach(s => items.push({ item: s.item, qty: s.qty || s.amt || 1 }));
+  } else if (gk === 'mhf1') {
+    document.querySelectorAll('#f1-supply-tbody tr').forEach(tr => {
+      const inp = tr.querySelectorAll('input');
+      items.push({ item: parseInt(inp[0].value, 16) || 0, qty: parseInt(inp[1].value) || 1 });
+    });
+  }
+  return items;
+}
+
+function _loadSupplyItems(items) {
+  const gk = GAME_MODE || 'mhf2';
+  if (gk === 'mhf2') {
+    const tb = document.getElementById('tb-supply');
+    if (tb && typeof appendSupplyRow === 'function') {
+      tb.innerHTML = '';
+      items.forEach((s, i) => appendSupplyRow(tb, i, s.item, s.qty));
+    }
+  } else if (gk === 'mhfu') {
+    if (fuModel) {
+      fuModel.supply = items.map(s => ({ item: s.item, qty: s.qty, amt: s.qty }));
+      const tb = document.getElementById('fu-supply-tbody');
+      if (tb && typeof fuSupplyRow === 'function') {
+        tb.innerHTML = '';
+        fuModel.supply.forEach((s, i) => tb.appendChild(fuSupplyRow(i, s)));
+      }
+    }
+  } else if (gk === 'mhf1') {
+    if (typeof f1Model !== 'undefined' && f1Model) {
+      f1Model.supply = items.map(s => ({ item: s.item, qty: s.qty }));
+      if (typeof renderF1Supply === 'function') renderF1Supply();
+    }
+  }
+  markDirty();
+}
+
+function exportSupplySet() {
+  const items = _readSupplyItems();
+  if (!items.length) { alert('No supply items to export.'); return; }
+  const json = JSON.stringify({ game: GAME_MODE, supply: items }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (fname || 'quest').replace(/\.[^.]+$/, '') + '_supply.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importSupplySet() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const items = data.supply || data;
+        if (!Array.isArray(items) || !items.length) { alert('Invalid item set file.'); return; }
+        _loadSupplyItems(items);
+      } catch (e) { alert('Failed to parse JSON: ' + e.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
 
 const SAFE_REWARD_ITEM = { mhf1: 159, mhf2: 193, mhfu: 193 };
 const SAFE_JOIN = { mhf1: 4, mhf2: 5, mhfu: 8 };
@@ -2196,7 +2276,7 @@ function applyToolMode(){
   const hiddenTabs = [
     'supply','rewards','gather',
     'mhfu-tab-supply','mhfu-tab-rewards','mhfu-tab-gather',
-    'mhf1-tab-supply','mhf1-tab-rewards'
+    'mhf1-tab-supply','mhf1-tab-rewards','mhf1-tab-gather'
   ];
   document.querySelectorAll('.nav-item').forEach(n => {
     const dt = n.dataset.tab || '';
@@ -2258,29 +2338,6 @@ function applySafeDefaults(){
   }
 }
 
-function applySafeSupply(){
-  if(!isSafeMode()) return;
-  const gk = GAME_MODE || 'mhf2';
-  const items = SAFE_SUPPLY[gk] || SAFE_SUPPLY.mhf2;
-
-  if(gk === 'mhf1' && typeof f1Model !== 'undefined' && f1Model){
-    f1Model.supply = items.map(s => ({item:s.item, qty:s.qty}));
-    if(typeof renderF1Supply === 'function') renderF1Supply();
-  } else if(gk === 'mhfu' && typeof fuModel !== 'undefined' && fuModel){
-    fuModel.supply = items.map(s => ({item:s.item, qty:s.qty, amt:s.qty}));
-    const tb = document.getElementById('fu-supply-tbody');
-    if(tb && typeof fuSupplyRow === 'function'){
-      tb.innerHTML = '';
-      fuModel.supply.forEach((s, i) => tb.appendChild(fuSupplyRow(i, s)));
-    }
-  } else if(gk === 'mhf2'){
-    const tb = document.getElementById('tb-supply');
-    if(tb && typeof appendSupplyRow === 'function'){
-      tb.innerHTML = '';
-      items.forEach((s, i) => appendSupplyRow(tb, i, s.item, s.qty));
-    }
-  }
-}
 
 function applySafeRewards(){
   if(!isSafeMode()) return;
@@ -2423,7 +2480,7 @@ function toggleToolMode(){
     // Switching back to Safe
     TOOL_MODE = 'safe';
     applyToolMode();
-    if(D && isNewQuest) { applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
+    if(D && isNewQuest) { applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
   }
 }
 
@@ -2444,7 +2501,6 @@ function onQuestLoaded(){
   if(!isSafeMode()) return;
   if(!isNewQuest) return;
   setTimeout(() => {
-    applySafeSupply();
     applySafeRewards();
     applySafeGathering();
     applySafeDefaults();
@@ -2464,7 +2520,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!isSafeMode()){
         TOOL_MODE = 'safe';
         applyToolMode();
-        if(D && isNewQuest) { applySafeSupply(); applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
+        if(D && isNewQuest) { applySafeRewards(); applySafeGathering(); applySafeDefaults(); }
       }
     });
   });

@@ -24,7 +24,7 @@ const SIZE_DATA = {
       "biggestQuest": "Slay the Rathalos!",
       "questCount": 9,
       "kingCrownCm": 2069.3,
-      "smallestCm": 1385.0,
+      "smallestCm": 1385,
       "biggestCm": 2240.4
     },
     {
@@ -80,12 +80,12 @@ const SIZE_DATA = {
       "kingCrownPct": 1.22,
       "smallestPct": 90,
       "smallestQuest": "Jungle Menace",
-      "biggestPct": 132,
+      "biggestPct": 133,
       "biggestQuest": "Jungle Menace",
-      "questCount": 8,
+      "questCount": 7,
       "kingCrownCm": 1122.2,
-      "smallestCm": 828.7,
-      "biggestCm": 1218.7
+      "smallestCm": 827.8,
+      "biggestCm": 1223.3
     },
     {
       "id": 8,
@@ -100,7 +100,7 @@ const SIZE_DATA = {
       "questCount": 15,
       "kingCrownCm": 1876.7,
       "smallestCm": 1372.9,
-      "biggestCm": 2019.0
+      "biggestCm": 2019
     },
     {
       "id": 36,
@@ -169,7 +169,7 @@ const SIZE_DATA = {
       "questCount": 4,
       "kingCrownCm": 2122.8,
       "smallestCm": 1398.8,
-      "biggestCm": 2057.0
+      "biggestCm": 2057
     },
     {
       "id": 17,
@@ -199,7 +199,7 @@ const SIZE_DATA = {
       "questCount": 5,
       "kingCrownCm": 3102.4,
       "smallestCm": 2282.8,
-      "biggestCm": 3357.0
+      "biggestCm": 3357
     },
     {
       "id": 20,
@@ -390,7 +390,7 @@ const SIZE_DATA = {
       "biggestQuest": "Slay the Rathalos!",
       "questCount": 4,
       "kingCrownCm": 2069.3,
-      "smallestCm": 1385.0,
+      "smallestCm": 1385,
       "biggestCm": 2036.8
     },
     {
@@ -451,7 +451,7 @@ const SIZE_DATA = {
       "questCount": 29,
       "kingCrownCm": 1122.2,
       "smallestCm": 459.9,
-      "biggestCm": 1101.0
+      "biggestCm": 1101
     }
   ],
   "mhf2": [
@@ -550,14 +550,14 @@ const SIZE_DATA = {
       "minCrownPct": 0.99,
       "kingCrownPct": 1.38,
       "smallestPct": 97,
-      "smallestQuest": "Monkeys and Crabs!",
-      "biggestPct": 142,
-      "biggestQuest": "Monkeys and Crabs!",
-      "questCount": 15,
+      "smallestQuest": "Two Roars in the Snow",
+      "biggestPct": 143,
+      "biggestQuest": "Two Roars in the Snow",
+      "questCount": 13,
       "minCrownCm": 851.4,
       "kingCrownCm": 1186.8,
-      "smallestCm": 833.3,
-      "biggestCm": 1225.5
+      "smallestCm": 834.2,
+      "biggestCm": 1229.8
     },
     {
       "id": 38,
@@ -605,7 +605,7 @@ const SIZE_DATA = {
       "minCrownCm": 1430.6,
       "kingCrownCm": 1876.7,
       "smallestCm": 1372.9,
-      "biggestCm": 2019.0
+      "biggestCm": 2019
     },
     {
       "id": 59,
@@ -619,9 +619,9 @@ const SIZE_DATA = {
       "biggestQuest": "The Elder Dragon of Mist",
       "questCount": 6,
       "minCrownCm": 1674.2,
-      "kingCrownCm": 2459.0,
+      "kingCrownCm": 2459,
       "smallestCm": 1656.8,
-      "biggestCm": 2616.0
+      "biggestCm": 2616
     },
     {
       "id": 52,
@@ -635,9 +635,9 @@ const SIZE_DATA = {
       "biggestQuest": "Conga Counterattack!",
       "questCount": 13,
       "minCrownCm": 954.5,
-      "kingCrownCm": 1230.0,
-      "smallestCm": 920.0,
-      "biggestCm": 1353.0
+      "kingCrownCm": 1230,
+      "smallestCm": 920,
+      "biggestCm": 1353
     },
     {
       "id": 36,
@@ -676,7 +676,7 @@ const SIZE_DATA = {
       "smallestPct": 96,
       "smallestQuest": "Four Horns",
       "biggestPct": 148,
-      "biggestQuest": "\u300c\u30de\uff09\u738b\u3000\u7247\u89d2\u306e\u30de\u30aa\u30a6",
+      "biggestQuest": "「マ）王　片角のマオウ",
       "questCount": 7,
       "minCrownCm": 1933.6,
       "kingCrownCm": 2770.8,
@@ -788,7 +788,7 @@ const SIZE_DATA = {
       "questCount": 9,
       "minCrownCm": 942.7,
       "kingCrownCm": 1267.1,
-      "smallestCm": 922.0,
+      "smallestCm": 922,
       "biggestCm": 1355.8
     },
     {
@@ -814,7 +814,7 @@ const SIZE_DATA = {
       "minCrownPct": 0.93,
       "kingCrownPct": 1.35,
       "smallestPct": 50,
-      "smallestQuest": "\u96fb\u6483\u796d\u3000\uff12\uff4e\uff44\uff01",
+      "smallestQuest": "電撃祭　２ｎｄ！",
       "biggestPct": 136,
       "biggestQuest": "The Electrified Wyvern",
       "questCount": 7,
@@ -847,13 +847,13 @@ const SIZE_DATA = {
       "kingCrownPct": 1.2,
       "smallestPct": 90,
       "smallestQuest": "The Frozen Dictator",
-      "biggestPct": 132,
+      "biggestPct": 133,
       "biggestQuest": "The Frozen Dictator",
       "questCount": 5,
       "minCrownCm": 1435.1,
       "kingCrownCm": 1892.4,
-      "smallestCm": 1420.9,
-      "biggestCm": 2089.5
+      "smallestCm": 1419.3,
+      "biggestCm": 2097.4
     },
     {
       "id": 7,
@@ -896,12 +896,12 @@ const SIZE_DATA = {
       "questCount": 1,
       "minCrownCm": 1883.9,
       "kingCrownCm": 2545.3,
-      "smallestCm": 1904.0,
+      "smallestCm": 1904,
       "biggestCm": 2284.8
     },
     {
       "id": 60,
-      "name": "Monster 60",
+      "name": "Rusted Kushala Daora",
       "baseCm": null,
       "minCrownPct": null,
       "kingCrownPct": null,
@@ -913,7 +913,7 @@ const SIZE_DATA = {
     },
     {
       "id": 40,
-      "name": "One-Ear Yian Garuga",
+      "name": "Yian Garuga",
       "baseCm": 1031.7,
       "minCrownPct": 0.91,
       "kingCrownPct": 1.21,
@@ -972,7 +972,7 @@ const SIZE_DATA = {
       "questCount": 6,
       "minCrownCm": 942.7,
       "kingCrownCm": 1267.1,
-      "smallestCm": 922.0,
+      "smallestCm": 922,
       "biggestCm": 1355.8
     },
     {
@@ -983,13 +983,13 @@ const SIZE_DATA = {
       "kingCrownPct": 1.4,
       "smallestPct": 100,
       "smallestQuest": "The Final Invitation",
-      "biggestPct": 162,
-      "biggestQuest": "Golden Thunder God",
-      "questCount": 7,
-      "minCrownCm": 1008.0,
-      "kingCrownCm": 1344.0,
-      "smallestCm": 960.0,
-      "biggestCm": 1560.0
+      "biggestPct": 163,
+      "biggestQuest": "Rajang of Mountain Flames",
+      "questCount": 6,
+      "minCrownCm": 1008,
+      "kingCrownCm": 1344,
+      "smallestCm": 960,
+      "biggestCm": 1564.8
     },
     {
       "id": 11,
@@ -1016,7 +1016,7 @@ const SIZE_DATA = {
       "smallestPct": 88,
       "smallestQuest": "A Troublesome Pair",
       "biggestPct": 138,
-      "biggestQuest": "\u30d5\u30a1\u30df\u901a\u3000\uff12\u982d\u306e\u5973\u738b",
+      "biggestQuest": "ファミ通　２頭の女王",
       "questCount": 14,
       "minCrownCm": 1530.4,
       "kingCrownCm": 2122.8,
@@ -1036,7 +1036,7 @@ const SIZE_DATA = {
       "questCount": 3,
       "minCrownCm": 812.1,
       "kingCrownCm": 1178.8,
-      "smallestCm": 809.0,
+      "smallestCm": 809,
       "biggestCm": 1189.7
     },
     {
@@ -1092,10 +1092,10 @@ const SIZE_DATA = {
       "smallestPct": 87,
       "smallestQuest": "A Sun with Fangs",
       "biggestPct": 134,
-      "biggestQuest": "\uff2a\uff35\uff2d\uff30\u3000\u708e\u5e1d\u306e\u51f1\u65cb",
+      "biggestQuest": "ＪＵＭＰ　炎帝の凱旋",
       "questCount": 12,
       "minCrownCm": 1531.2,
-      "kingCrownCm": 2175.0,
+      "kingCrownCm": 2175,
       "smallestCm": 1508.6,
       "biggestCm": 2327.2
     },
@@ -1112,7 +1112,7 @@ const SIZE_DATA = {
       "questCount": 13,
       "minCrownCm": 1561.8,
       "kingCrownCm": 2134.4,
-      "smallestCm": 1534.0,
+      "smallestCm": 1534,
       "biggestCm": 2255.9
     },
     {
@@ -1327,7 +1327,7 @@ const SIZE_DATA = {
       "minCrownCm": 1430.6,
       "kingCrownCm": 1876.7,
       "smallestCm": 1372.9,
-      "biggestCm": 2019.0
+      "biggestCm": 2019
     },
     {
       "id": 59,
@@ -1341,7 +1341,7 @@ const SIZE_DATA = {
       "biggestQuest": "Evaporate into the Night",
       "questCount": 9,
       "minCrownCm": 1674.2,
-      "kingCrownCm": 2459.0,
+      "kingCrownCm": 2459,
       "smallestCm": 1656.8,
       "biggestCm": 2644.3
     },
@@ -1357,8 +1357,8 @@ const SIZE_DATA = {
       "biggestQuest": "Expunge the Funk!",
       "questCount": 22,
       "minCrownCm": 954.5,
-      "kingCrownCm": 1230.0,
-      "smallestCm": 920.0,
+      "kingCrownCm": 1230,
+      "smallestCm": 920,
       "biggestCm": 1377.6
     },
     {
@@ -1375,7 +1375,7 @@ const SIZE_DATA = {
       "minCrownCm": 851.4,
       "kingCrownCm": 1186.8,
       "smallestCm": 804.1,
-      "biggestCm": 1247.0
+      "biggestCm": 1247
     },
     {
       "id": 36,
@@ -1433,7 +1433,7 @@ const SIZE_DATA = {
       "biggestQuest": "Expunge the Funk!",
       "questCount": 9,
       "minCrownCm": 954.5,
-      "kingCrownCm": 1230.0,
+      "kingCrownCm": 1230,
       "smallestCm": 936.8,
       "biggestCm": 1377.6
     },
@@ -1460,10 +1460,10 @@ const SIZE_DATA = {
       "biggestPct": 150,
       "biggestQuest": "Child of Destruction",
       "questCount": 6,
-      "minCrownCm": 1008.0,
-      "kingCrownCm": 1344.0,
-      "smallestCm": 960.0,
-      "biggestCm": 1440.0
+      "minCrownCm": 1008,
+      "kingCrownCm": 1344,
+      "smallestCm": 960,
+      "biggestCm": 1440
     },
     {
       "id": 28,
@@ -1683,7 +1683,7 @@ const SIZE_DATA = {
       "minCrownCm": 1583.4,
       "kingCrownCm": 2105.4,
       "smallestCm": 1508.6,
-      "biggestCm": 2262.0
+      "biggestCm": 2262
     },
     {
       "id": 26,
@@ -1703,7 +1703,7 @@ const SIZE_DATA = {
     },
     {
       "id": 58,
-      "name": "Monster 58",
+      "name": "Yama Tsukami",
       "baseCm": null,
       "minCrownPct": null,
       "kingCrownPct": null,
@@ -1715,7 +1715,7 @@ const SIZE_DATA = {
     },
     {
       "id": 60,
-      "name": "Monster 60",
+      "name": "Rusted Kushala Daora",
       "baseCm": null,
       "minCrownPct": null,
       "kingCrownPct": null,
@@ -1727,7 +1727,7 @@ const SIZE_DATA = {
     },
     {
       "id": 79,
-      "name": "Monster 79",
+      "name": "King Shakalaka",
       "baseCm": null,
       "minCrownPct": null,
       "kingCrownPct": null,
@@ -1739,7 +1739,7 @@ const SIZE_DATA = {
     },
     {
       "id": 80,
-      "name": "Monster 80",
+      "name": "Queen Vespoid",
       "baseCm": null,
       "minCrownPct": null,
       "kingCrownPct": null,
@@ -1760,14 +1760,14 @@ const SIZE_DATA = {
       "biggestPct": 131,
       "biggestQuest": "Ancient Beauty, Black Beast",
       "questCount": 17,
-      "minCrownCm": 1442.0,
+      "minCrownCm": 1442,
       "kingCrownCm": 1970.7,
       "smallestCm": 1389.1,
       "biggestCm": 2102.9
     },
     {
       "id": 40,
-      "name": "One-Ear Yian Garuga",
+      "name": "Yian Garuga",
       "baseCm": 1031.7,
       "minCrownPct": 0.91,
       "kingCrownPct": 1.21,
@@ -1856,10 +1856,10 @@ const SIZE_DATA = {
       "biggestPct": 162,
       "biggestQuest": "Rajang of Mountain Flames",
       "questCount": 9,
-      "minCrownCm": 1008.0,
-      "kingCrownCm": 1344.0,
+      "minCrownCm": 1008,
+      "kingCrownCm": 1344,
       "smallestCm": 913.9,
-      "biggestCm": 1560.0
+      "biggestCm": 1560
     },
     {
       "id": 11,
@@ -1965,7 +1965,7 @@ const SIZE_DATA = {
       "biggestQuest": "JUMP: Emperor of Explosions",
       "questCount": 11,
       "minCrownCm": 1531.2,
-      "kingCrownCm": 2175.0,
+      "kingCrownCm": 2175,
       "smallestCm": 1508.6,
       "biggestCm": 2441.2
     },
@@ -1998,7 +1998,7 @@ const SIZE_DATA = {
       "questCount": 24,
       "minCrownCm": 1561.8,
       "kingCrownCm": 2134.4,
-      "smallestCm": 1534.0,
+      "smallestCm": 1534,
       "biggestCm": 2394.7
     },
     {

@@ -174,8 +174,8 @@ tr.drag-over-row{border-top:2px solid var(--accent) !important}
     <div class="nav-item mhf1-nav" data-tab="mhf1-tab-rewards">💰 Rewards</div>
     <div class="nav-item mhf1-nav" data-tab="mhf1-tab-boss">🐉 Boss Spawns</div>
     <div class="nav-item mhf1-nav" data-tab="mhf1-tab-smallmon">🐾 Small Monsters</div>
-    <!--<div class="nav-item mhf1-nav" data-tab="mhf1-tab-gather">🌿 Gathering</div>
-    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-training">🏟️ Training / Arena</div>-->
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-gather">🌿 Gathering</div>
+    <div class="nav-item mhf1-nav" data-tab="mhf1-tab-training">🏟️ Training / Arena</div>
     <div class="nav-item mhf1-nav" data-tab="mhf1-tab-fixed">🔒 Fixed Info</div>
     <div class="nav-sep mhf1-nav"></div>
     <div class="nav-item mhf1-nav f1-hex" data-tab="hex">🔢 Hex View</div>
@@ -410,6 +410,8 @@ tr.drag-over-row{border-top:2px solid var(--accent) !important}
               <tbody id="tb-supply"></tbody>
             </table>
             <button class="btn-add" style="margin-top:10px" onclick="addSupplyRow()">+ Add Item</button>
+            <button class="btn-ghost" style="margin-top:10px;margin-left:8px" onclick="exportSupplySet()">⬇ Export Set</button>
+            <button class="btn-ghost" style="margin-top:10px;margin-left:4px" onclick="importSupplySet()">⬆ Import Set</button>
           </div>
         </div>
       </div>
@@ -640,6 +642,8 @@ tr.drag-over-row{border-top:2px solid var(--accent) !important}
           <div class="note">Item entries given to the hunter at quest start. Add or remove freely — the file is rebuilt on export.</div>
           <div class="card-body"><table><thead><tr><th>#</th><th>Item</th><th>Amount</th><th></th></tr></thead><tbody id="fu-supply-tbody"></tbody></table>
             <button class="btn-add" style="margin-top:10px" onclick="fuAddSupplyRow()">+ Add Item</button>
+            <button class="btn-ghost" style="margin-top:10px;margin-left:8px" onclick="exportSupplySet()">⬇ Export Set</button>
+            <button class="btn-ghost" style="margin-top:10px;margin-left:4px" onclick="importSupplySet()">⬆ Import Set</button>
           </div>
         </div>
       </div>
@@ -812,6 +816,8 @@ tr.drag-over-row{border-top:2px solid var(--accent) !important}
               <tbody id="f1-supply-tbody"></tbody>
             </table>
             <button class="btn-add" style="margin-top:10px" onclick="f1AddSupplyRow()">+ Add Item</button>
+            <button class="btn-ghost" style="margin-top:10px;margin-left:8px" onclick="exportSupplySet()">⬇ Export Set</button>
+            <button class="btn-ghost" style="margin-top:10px;margin-left:4px" onclick="importSupplySet()">⬆ Import Set</button>
           </div>
         </div>
       </div>
@@ -983,11 +989,12 @@ tr.drag-over-row{border-top:2px solid var(--accent) !important}
   <span class="spacer"></span><span id="ssz"></span>
 </div>
 
-<script src="size_data.js?v=1"></script>
-<script src="shared.js?v=26"></script>
+<script src="size_data.js?v=3"></script>
+<script src="shared.js?v=30"></script>
 <script src="mhf2.js?v=15"></script>
-<script src="mhfu.js?v=13"></script>
-<script src="mhf1.js?v=23"></script>
+<script src="mhfu.js?v=27"></script>
+<script src="f1_gather_sets.js?v=1"></script>
+<script src="mhf1.js?v=28"></script>
 <script src="init.js"></script>
 
 </body>

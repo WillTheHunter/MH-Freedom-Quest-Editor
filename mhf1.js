@@ -118,7 +118,7 @@ const F1_BREAK_PARTS = {
 };
 
 const F1_MAPS = [
-  "Fort","Village","Forest & Hills","Desert (Day)","Swamp (Day)",
+  "Village","Fort","Forest & Hills","Desert (Day)","Swamp (Day)",
   "Volcano (Day)","Jungle (Day)","Schrade","Battleground","Arena","Great Arena"
 ];
 
@@ -144,8 +144,8 @@ const F1_AREA_IDS = {
 function f1AreaName(id){ return F1_AREA_IDS[id] || ('Area 0x'+id.toString(16).toUpperCase()); }
 
 const F1_MAP_AREAS = {
-  0: [0x0A,0x0E,0x1E,0x1C,0x0B,0x0C,0x1F],
-  1: [0x0D,0x11,0x4C,0x56,0x57],
+  0: [0x0D,0x11,0x4C,0x56,0x57],
+  1: [0x0A,0x0E,0x1E,0x1C,0x0B,0x0C,0x1F],
   2: [0x15,0x27,0x26,0x21,0x25,0x28,0x20,0x29,0x23,0x24,0x22,0x2A,0x2B],
   3: [0x32,0x33,0x2D,0x39,0x34,0x36,0x2F,0x38,0x31,0x30,0x35,0x37,0x07],
   4: [0x43,0x10,0x44,0x06,0x2C,0x09,0x48,0x4B,0x46,0x45,0x47,0x49,0x4A],
@@ -1143,6 +1143,21 @@ function f1DupSmEntry(ci, ai, ei){
 }
 
 // ── GATHERING RENDERING (editable, F2-style) ────────────────────────────────
+function f1LootSetOpts(sel){
+  let h = '';
+  if(typeof F1_GATHER_SETS === 'undefined') {
+    for(let i=0;i<672;i++) h+=`<option value="${i}"${i===sel?' selected':''}>#${i}</option>`;
+    return h;
+  }
+  for(let i=0;i<672;i++){
+    const s = F1_GATHER_SETS[i];
+    let label = '#'+i;
+    if(s && s.length) label += ' — ' + s.slice(0,3).map(e=>(F1_ITEM_LIST[e[0]]||'?')+' '+e[1]+'%').join(', ') + (s.length>3?' …':'');
+    h+=`<option value="${i}"${i===sel?' selected':''}>${label}</option>`;
+  }
+  return h;
+}
+
 function renderF1Gather(){
   const wrap = document.getElementById('f1-gather-wrap');
   if(!wrap) return;
@@ -1185,17 +1200,26 @@ function renderF1Gather(){
         `<label style="font-size:13px">Y</label><input type="number" data-f="y" value="${pt.y.toFixed(2)}" step="0.1" style="width:75px">`+
         `<label style="font-size:13px">Z</label><input type="number" data-f="z" value="${pt.z.toFixed(2)}" step="0.1" style="width:75px">`+
         `<label style="font-size:13px">Range</label><input type="number" data-f="range" value="${(pt.range||0).toFixed(2)}" step="0.1" style="width:75px">`+
-        `<label style="font-size:13px">Code</label><input type="number" data-f="collectId" value="${pt.collectId}" min="0" max="65535" style="width:55px">`+
+        `<label style="font-size:13px">Loot#</label><select data-f="collectId" style="font-size:12px;max-width:260px">${f1LootSetOpts(pt.collectId)}</select>`+
         `<label style="font-size:13px">FrqUp</label><input type="number" data-f="freqLimit" value="${pt.freqLimit}" min="0" max="65535" style="width:50px">`+
         `<select data-f="type" style="font-size:14px">${gatherTypeOpts(pt.type||0)}</select>`+
         `<label style="font-size:13px">Unk</label><input type="number" data-f="unk" value="${pt.unk}" min="0" max="65535" style="width:50px">`+
         `<button class="btn-dup" title="Duplicate" onclick="f1DupGatherNode(${ai},${pi})">⧉</button> `+
         `<button class="btn-danger" title="Delete" onclick="f1DelGatherNode(${ai},${pi})">✕</button>`;
       body.appendChild(nodeDiv);
-      // Collection ID reference note (F1 has no embedded item tables)
       const refDiv = document.createElement('div');
       refDiv.style.cssText = 'margin:0 0 4px 24px;padding:2px 8px;border-left:3px solid var(--accent);font-size:11px;color:var(--muted)';
-      refDiv.textContent = `Collection Table #${pt.collectId} (game-global loot table, not embedded in quest)`;
+      function updateLootRef(cid){
+        const setData = (typeof F1_GATHER_SETS !== 'undefined') && F1_GATHER_SETS[cid];
+        if (setData) {
+          refDiv.innerHTML = `<b>Loot Table #${cid}</b>: ` +
+            setData.map(e => `${F1_ITEM_LIST[e[0]]||('0x'+e[0].toString(16))} (${e[1]}%)`).join(', ');
+        } else {
+          refDiv.textContent = `Loot Table #${cid} (unknown set)`;
+        }
+      }
+      updateLootRef(pt.collectId);
+      nodeDiv.querySelector('[data-f="collectId"]').addEventListener('change', function(){ updateLootRef(parseInt(this.value)||0); });
       body.appendChild(refDiv);
     });
     card.appendChild(body);
@@ -1619,29 +1643,10 @@ function renderF1Training(){
   h += '<tr><td style="color:var(--muted);padding-right:16px">Fee</td><td>'+m.fee+'z</td></tr>';
   h += '</tbody></table>';
 
-  // Join condition editor
-  h += '<div style="font-size:11px;color:var(--accent);margin-bottom:4px;font-weight:bold">Edit Join Condition</div>';
-  h += '<div class="fg" style="margin-bottom:12px"><div class="f"><select id="f1-train-joincond" onchange="f1TrainJoinChanged();markDirty()">';
-  for(const [code, label] of Object.entries(F1_JOIN_CONDITIONS)){
-    h += '<option value="'+code+'"'+(parseInt(code)===m.specCond?' selected':'')+'>0x'+parseInt(code).toString(16).toUpperCase().padStart(2,'0')+' – '+label+'</option>';
-  }
-  if(!F1_JOIN_CONDITIONS[m.specCond])
-    h += '<option value="'+m.specCond+'" selected>0x'+m.specCond.toString(16).toUpperCase().padStart(2,'0')+' – Custom</option>';
-  h += '</select></div></div>';
-
   // Note about MHF1 training quests
-  h += '<div class="note" style="margin-top:8px">MHF1 training quests do not embed equipment sets like F2/FU. The "training" behavior is controlled by difficulty = 0x03 and join conditions (weapon restrictions, no armor). Equipment loadouts are handled by the game engine based on the quest ID.</div>';
+  h += '<div class="note" style="margin-top:8px">MHF1 training quests do not embed equipment sets like F2/FU. The "training" behavior is controlled by difficulty = 0x03 and join conditions (weapon restrictions, no armor). Equipment loadouts are handled by the game engine based on the quest ID. The join condition can be edited in the Quest Info tab.</div>';
 
   wrap.innerHTML = h;
-}
-
-function f1TrainJoinChanged(){
-  const sel = document.getElementById('f1-train-joincond');
-  if(!sel) return;
-  const v = parseInt(sel.value)||0;
-  f1Model.specCond = v;
-  const el = document.getElementById('f1-speccond');
-  if(el) el.value = v;
 }
 
 // ── SERIALIZER ───────────────────────────────────────────────────────────────
