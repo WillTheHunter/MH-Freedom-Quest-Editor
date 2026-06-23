@@ -1640,8 +1640,8 @@ document.getElementById('editor').addEventListener('change',markDirty);
 
 function createNewQuest() {
   if (GAME_MODE === 'mhf1') {
-    if (typeof buildNewF1Quest === 'function') loadFromData(buildNewF1Quest(), 'new_quest_mhf1.mib', true);
-    else alert('MHF1 module not loaded yet.');
+    if (typeof buildNewF1Quest !== 'function') loadFromData(buildNewF1Quest(), 'new_quest_mhf1.mib', true);
+    else alert('MHF1 temporarily broken, use the open button instead.');
   } else if (GAME_MODE === 'mhfu') {
     loadFromData(buildNewFUQuest(), 'new_quest_mhfu.bin', true);
   } else if (GAME_MODE === 'mhf2') {
