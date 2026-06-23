@@ -1565,7 +1565,7 @@ function parseF2Training(d, ptr) {
   for (let s = 0; s < 5; s++) {
     const set = { players: playerCount, pointMult: ru16(d, o), weapon: null, armors: [], items: [] };
     o += 2;
-    // Weapon: 11 bytes (type u8, id u16, grade u16, deco×3 u16)
+    // Weapon: 11 bytes (type u8, id u16, grade u16, deco x3 u16)
     set.weapon = { type: d[o], id: ru16(d,o+1), grade: ru16(d,o+3), deco1: ru16(d,o+5), deco2: ru16(d,o+7), deco3: ru16(d,o+9) };
     o += 11;
     // 5 armor pieces, each 12 bytes (1 skip + 11 data)

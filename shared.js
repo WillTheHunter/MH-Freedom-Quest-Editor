@@ -622,6 +622,11 @@ async function doSave(format){
   }
   if (!D || !D.length) { alert('Nothing to export.'); return; }
 
+  if (D.length > EVT_SLOT) {
+    alert('Warning: quest size (' + D.length + ' bytes / 0x' + D.length.toString(16).toUpperCase() +
+      ') exceeds the maximum slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+      ' (' + EVT_SLOT + ' bytes).\n\nThis quest will be truncated if injected into EVENT.BIN.');
+  }
 
   // ── JSON export: human-readable dump of the parsed quest ──
   if (format === 'json') {
@@ -648,6 +653,10 @@ async function doSave(format){
   } else { // 'bin' or 'mib' — both are the raw body, no prefix
     outExt = '.' + format; withPrefix = false;
   }
+
+  // Trim trailing zero padding from D (standalone quest files have no padding;
+  // padding is only added when injecting into EVENT.BIN).
+  { let last = D.length; while (last > 0 && D[last-1] === 0) last--; D = D.slice(0, last); }
 
   // Build the bytes: body D, optionally prefixed with the 4-byte .pat header.
   let exportData;
@@ -1079,8 +1088,8 @@ function loadFromData(bytes, name, isNew){
     setStatus('err', '⚠️ Template error: ' + ex.message);
     console.error(ex); return;
   }
-  isDirty = true;
-  isNewQuest = true;
+  isDirty = !!isNew;
+  isNewQuest = !!isNew;
   onQuestLoaded();
   document.getElementById('dz-wrap').style.display = 'none';
   document.getElementById('editor').style.display = 'block';
@@ -1094,8 +1103,8 @@ function loadFromData(bytes, name, isNew){
   if(firstNav) firstNav.classList.add('active');
   const firstPanel = document.getElementById(GAME_MODE==='mhf2'?'tab-info':firstTab);
   if(firstPanel) firstPanel.classList.add('active');
-  setStatus('ok', fname + '  [new quest]');
-  document.getElementById('save-bar').style.display = 'flex';
+  setStatus('ok', fname + (isNew ? '  [new quest]' : '  [loaded]'));
+  document.getElementById('save-bar').style.display = isNew ? 'flex' : 'none';
   renderHex(D);
 }
 
@@ -1908,6 +1917,11 @@ function eventReplaceQuest(idx) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const raw = new Uint8Array(e.target.result);
+      if (raw.length > EVT_SLOT) {
+        alert('Warning: file is ' + raw.length + ' bytes (0x' + raw.length.toString(16).toUpperCase() +
+          '), exceeding the max slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+          '. It will be truncated to fit.');
+      }
       const padded = new Uint8Array(EVT_SLOT);
       padded.set(raw.slice(0, Math.min(raw.length, EVT_SLOT)));
       eventSlots[idx] = {
@@ -1939,6 +1953,11 @@ function eventInsertQuest(idx) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const raw = new Uint8Array(e.target.result);
+      if (raw.length > EVT_SLOT) {
+        alert('Warning: file is ' + raw.length + ' bytes (0x' + raw.length.toString(16).toUpperCase() +
+          '), exceeding the max slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+          '. It will be truncated to fit.');
+      }
       const padded = new Uint8Array(EVT_SLOT);
       padded.set(raw.slice(0, Math.min(raw.length, EVT_SLOT)));
       const slot = {
@@ -1969,6 +1988,11 @@ function eventAddQuest() {
       const reader = new FileReader();
       reader.onload = function(e) {
         const raw = new Uint8Array(e.target.result);
+        if (raw.length > EVT_SLOT) {
+          alert('Warning: "' + file.name + '" is ' + raw.length + ' bytes (0x' + raw.length.toString(16).toUpperCase() +
+            '), exceeding the max slot size of 0x' + EVT_SLOT.toString(16).toUpperCase() +
+            '. It will be truncated to fit.');
+        }
         const padded = new Uint8Array(EVT_SLOT);
         padded.set(raw.slice(0, Math.min(raw.length, EVT_SLOT)));
         toAdd[fi] = {
@@ -2107,11 +2131,11 @@ function checkSizeLimits(){
     } else {
       if(effMin < ref.smallestPct){
         const diff = Math.round(ref.smallestPct - effMin);
-        warnings.push(`Min exceeded by -${diff}%`);
+        if(diff >= 1) warnings.push(`Min exceeded by -${diff}%`);
       }
       if(effMax > ref.biggestPct){
         const diff = Math.round(effMax - ref.biggestPct);
-        warnings.push(`Max exceeded by +${diff}%`);
+        if(diff >= 1) warnings.push(`Max exceeded by +${diff}%`);
       }
     }
 
