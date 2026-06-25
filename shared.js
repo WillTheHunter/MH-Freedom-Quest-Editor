@@ -1083,12 +1083,11 @@ function loadFromData(bytes, name, isNew){
       populateUI(D);
     }
     upgradeSelectsToCombo();
-    if (isNew && typeof f1Model !== 'undefined' && f1Model) f1Model.origD = null;
   } catch(ex) {
     setStatus('err', '⚠️ Template error: ' + ex.message);
     console.error(ex); return;
   }
-  isDirty = !!isNew;
+  isDirty = false;
   isNewQuest = !!isNew;
   onQuestLoaded();
   document.getElementById('dz-wrap').style.display = 'none';
@@ -1640,8 +1639,8 @@ document.getElementById('editor').addEventListener('change',markDirty);
 
 function createNewQuest() {
   if (GAME_MODE === 'mhf1') {
-    if (typeof buildNewF1Quest !== 'function') loadFromData(buildNewF1Quest(), 'new_quest_mhf1.mib', true);
-    else alert('MHF1 temporarily broken, use the open button instead.');
+    if (typeof buildNewF1Quest === 'function') loadFromData(buildNewF1Quest(), 'new_quest_mhf1.mib', true);
+    else alert('MHF1 module not loaded.');
   } else if (GAME_MODE === 'mhfu') {
     loadFromData(buildNewFUQuest(), 'new_quest_mhfu.bin', true);
   } else if (GAME_MODE === 'mhf2') {

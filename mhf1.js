@@ -389,6 +389,7 @@ function parseF1SmallMon(d, basePtr, isChange){
           id, state:_r16(d,dp+2), qty:_r16(d,dp+4), activation:_r16(d,dp+6),
           pad: Array.from(d.slice(dp+8,dp+28)),
           orient:_r32(d,dp+28), x:_rf32(d,dp+32), z:_rf32(d,dp+36), y:_rf32(d,dp+40),
+          rawFloats: Array.from(d.slice(dp+28,dp+44)),
           tail: Array.from(d.slice(dp+44,dp+60))
         });
         dp += 60;
@@ -420,6 +421,7 @@ function parseBoss(d, m){
         area:_r8(d,dp+7),
         pad: Array.from(d.slice(dp+8,dp+28)),
         orient:_r32(d,dp+28), x:_rf32(d,dp+32), z:_rf32(d,dp+36), y:_rf32(d,dp+40),
+        rawFloats: Array.from(d.slice(dp+28,dp+44)),
         tail: Array.from(d.slice(dp+44,dp+60))
       });
       dp += 60;
@@ -941,7 +943,9 @@ function f1CommitBossFromUI(){
     const z = parseFloat(g('z')) || 0;
     const y = parseFloat(g('y')) || 0;
     const orig = oldDetails[idx] || {};
-    f1Model.bossDetails.push({id, state, qty, pad1:orig.pad1||0, pad2:orig.pad2||0, area, pad:orig.pad||new Array(20).fill(0), orient, x, z, y, tail:orig.tail||new Array(16).fill(0)});
+    const f32eq = (a,b) => { if(a===0&&b===0) return true; const buf=new ArrayBuffer(4),dv=new DataView(buf); dv.setFloat32(0,a,true); const va=dv.getUint32(0,true); dv.setFloat32(0,b,true); return va===dv.getUint32(0,true); };
+    const rf = (orig.rawFloats && orient===orig.orient && f32eq(x,orig.x) && f32eq(z,orig.z) && f32eq(y,orig.y)) ? orig.rawFloats : null;
+    f1Model.bossDetails.push({id, state, qty, pad1:orig.pad1||0, pad2:orig.pad2||0, area, pad:orig.pad||new Array(20).fill(0), orient, x, z, y, rawFloats:rf, tail:orig.tail||new Array(16).fill(0)});
   });
   // Auto-manage boss IDs from detail entries
   const uniqueIds = [...new Set(f1Model.bossDetails.map(b=>b.id))];
@@ -1080,10 +1084,12 @@ function f1CommitSmFromUI(){
       const id = pick ? readMonsterPick(pick) : 0;
       const g = f => { const el = tr.querySelector(`[data-f="${f}"]`); return el ? el.value : '0'; };
       const orig = oldDetails[idx] || {};
+      const orient=(parseInt(g('orient'))||0)>>>0, x=parseFloat(g('x'))||0, z=parseFloat(g('z'))||0, y=parseFloat(g('y'))||0;
+      const f32eq = (a,b) => { if(a===0&&b===0) return true; const buf=new ArrayBuffer(4),dv=new DataView(buf); dv.setFloat32(0,a,true); const va=dv.getUint32(0,true); dv.setFloat32(0,b,true); return va===dv.getUint32(0,true); };
+      const rf = (orig.rawFloats && orient===orig.orient && f32eq(x,orig.x) && f32eq(z,orig.z) && f32eq(y,orig.y)) ? orig.rawFloats : null;
       area.details.push({
         id, state:parseHD(g('state')), qty:parseInt(g('qty'))||1, activation:parseInt(g('act'))||0,
-        pad:orig.pad||new Array(20).fill(0), orient:(parseInt(g('orient'))||0)>>>0,
-        x:parseFloat(g('x'))||0, z:parseFloat(g('z'))||0, y:parseFloat(g('y'))||0,
+        pad:orig.pad||new Array(20).fill(0), orient, x, z, y, rawFloats:rf,
         tail:orig.tail||new Array(16).fill(0)
       });
     });
@@ -1464,8 +1470,8 @@ function patchF1InPlace(m) {
         w16(dp, b.id); w16(dp+2, b.state);
         d[dp+4] = b.qty; d[dp+5] = b.pad1||0; d[dp+6] = b.pad2||0; d[dp+7] = b.area;
         if(b.pad) for(let j=0;j<20;j++) d[dp+8+j] = b.pad[j]||0;
-        w32(dp+28, b.orient);
-        wf32(dp+32, b.x); wf32(dp+36, b.z); wf32(dp+40, b.y);
+        if(b.rawFloats) for(let j=0;j<16;j++) d[dp+28+j] = b.rawFloats[j];
+        else { w32(dp+28, b.orient); wf32(dp+32, b.x); wf32(dp+36, b.z); wf32(dp+40, b.y); }
         if(b.tail) for(let j=0;j<16;j++) d[dp+44+j] = b.tail[j]||0;
         dp += 60;
       }
@@ -1480,11 +1486,14 @@ function patchF1InPlace(m) {
       detData[o+2]=b.state&0xFF; detData[o+3]=(b.state>>8)&0xFF;
       detData[o+4]=b.qty; detData[o+5]=b.pad1||0; detData[o+6]=b.pad2||0; detData[o+7]=b.area;
       if(b.pad) for(let j=0;j<20;j++) detData[o+8+j]=b.pad[j]||0;
-      const ob=new ArrayBuffer(4); new DataView(ob).setUint32(0,b.orient,true); detData.set(new Uint8Array(ob),o+28);
-      const fb=new ArrayBuffer(4);
-      new DataView(fb).setFloat32(0,b.x,true); detData.set(new Uint8Array(fb),o+32);
-      new DataView(fb).setFloat32(0,b.z,true); detData.set(new Uint8Array(fb),o+36);
-      new DataView(fb).setFloat32(0,b.y,true); detData.set(new Uint8Array(fb),o+40);
+      if(b.rawFloats) for(let j=0;j<16;j++) detData[o+28+j]=b.rawFloats[j];
+      else {
+        const ob=new ArrayBuffer(4); new DataView(ob).setUint32(0,b.orient,true); detData.set(new Uint8Array(ob),o+28);
+        const fb=new ArrayBuffer(4);
+        new DataView(fb).setFloat32(0,b.x,true); detData.set(new Uint8Array(fb),o+32);
+        new DataView(fb).setFloat32(0,b.z,true); detData.set(new Uint8Array(fb),o+36);
+        new DataView(fb).setFloat32(0,b.y,true); detData.set(new Uint8Array(fb),o+40);
+      }
       if(b.tail) for(let j=0;j<16;j++) detData[o+44+j]=b.tail[j]||0;
     }
     detData[m.bossDetails.length*60]=0xFF; detData[m.bossDetails.length*60+1]=0xFF;
@@ -1974,12 +1983,15 @@ function buildSmallMonBin(areas, baseOff){
       detData[o+4]=d.qty&0xFF; detData[o+5]=(d.qty>>8)&0xFF;
       detData[o+6]=d.activation&0xFF; detData[o+7]=(d.activation>>8)&0xFF;
       if(d.pad) for(let j=0;j<20;j++) detData[o+8+j] = d.pad[j]||0;
-      const ob=new ArrayBuffer(4); new DataView(ob).setUint32(0,d.orient,true);
-      detData.set(new Uint8Array(ob),o+28);
-      const fb=new ArrayBuffer(4);
-      new DataView(fb).setFloat32(0,d.x,true); detData.set(new Uint8Array(fb),o+32);
-      new DataView(fb).setFloat32(0,d.z,true); detData.set(new Uint8Array(fb),o+36);
-      new DataView(fb).setFloat32(0,d.y,true); detData.set(new Uint8Array(fb),o+40);
+      if(d.rawFloats) for(let j=0;j<16;j++) detData[o+28+j] = d.rawFloats[j];
+      else {
+        const ob=new ArrayBuffer(4); new DataView(ob).setUint32(0,d.orient,true);
+        detData.set(new Uint8Array(ob),o+28);
+        const fb=new ArrayBuffer(4);
+        new DataView(fb).setFloat32(0,d.x,true); detData.set(new Uint8Array(fb),o+32);
+        new DataView(fb).setFloat32(0,d.z,true); detData.set(new Uint8Array(fb),o+36);
+        new DataView(fb).setFloat32(0,d.y,true); detData.set(new Uint8Array(fb),o+40);
+      }
       if(d.tail) for(let j=0;j<16;j++) detData[o+44+j] = d.tail[j]||0;
     });
     detData[a.details.length*60] = 0xFF; detData[a.details.length*60+1] = 0xFF;
