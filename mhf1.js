@@ -431,9 +431,8 @@ function parseBoss(d, m){
 
 function parseGather(d, m){
   const gp = m.gatherPtr;
-  m.gatherUnk1 = _r32(d,gp);
   m.gatherAreas = [];
-  const tableStart = gp + 4;
+  const tableStart = gp;
   for(let i=0;i<92;i++){
     const o = tableStart + i*4;
     if(o+3 >= d.length) break;
@@ -1260,10 +1259,11 @@ function renderF1Gather(){
   // Wire up area dropdown change events — lets user change which area an existing table is assigned to
   wrap.querySelectorAll('.f1-ga-area-sel').forEach(sel => {
     sel.addEventListener('change', () => {
+      if(sel.value === 'custom' || sel.value === '__search__') return;
       f1CommitGatherFromUI();
       const oldId = parseInt(sel.dataset.oldArea);
       const newId = parseInt(sel.value);
-      if(oldId === newId) return;
+      if(isNaN(newId) || oldId === newId) return;
       const area = m.gatherAreas.find(a => a.areaId === oldId);
       if(area) area.areaId = newId;
       renderF1Gather(); markDirty();
@@ -1543,20 +1543,19 @@ function patchF1InPlace(m) {
   // Gathering — rebuild and append at end only when dirty
   if (isDirty) {
     const gatherOff = d.length;
-    const gatherHeader = new Uint8Array(4 + 92*4);
+    const gatherHeader = new Uint8Array(92*4);
     const gv = new DataView(gatherHeader.buffer);
-    gv.setUint32(0, m.gatherUnk1, true);
     appendData(gatherHeader);
 
     for (let i = 0; i < 92; i++) {
       const a = m.gatherAreas.find(a => a.areaId === i);
       if (!a || !a.points.length) {
-        gv.setUint32(4 + i*4, 0, true);
+        gv.setUint32(i*4, 0, true);
         continue;
       }
       const ptOff = d.length;
-      gv.setUint32(4 + i*4, ptOff, true);
-      const ad = new Uint8Array(a.points.length * 24 + 4);
+      gv.setUint32(i*4, ptOff, true);
+      const ad = new Uint8Array(a.points.length * 24 + 24);
       const adv = new DataView(ad.buffer);
       a.points.forEach((p, j) => {
         const o = j * 24;
@@ -1857,8 +1856,7 @@ function serializeF1(m){
 
   // Gathering section — always 92 pointer entries (one per area ID 0x00-0x5B)
   const gatherOff = cursor;
-  const gatherHeaderData = new Uint8Array(4 + 92*4);
-  w32(gatherHeaderData,0,m.gatherUnk1);
+  const gatherHeaderData = new Uint8Array(92*4);
   cursor += gatherHeaderData.length;
 
   const gatherAreaDatas = [];
@@ -1866,10 +1864,10 @@ function serializeF1(m){
   for(let i=0;i<92;i++){
     const a = m.gatherAreas.find(a=>a.areaId===i);
     if(!a || !a.points.length){
-      w32(gatherHeaderData, 4+i*4, 0);
+      w32(gatherHeaderData, i*4, 0);
       continue;
     }
-    w32(gatherHeaderData, 4+i*4, cursor);
+    w32(gatherHeaderData, i*4, cursor);
     gatherAreaOffs.push(cursor);
     const ad = new Uint8Array(a.points.length*24 + 24); // points + terminator pad
     a.points.forEach((p,j) => {
