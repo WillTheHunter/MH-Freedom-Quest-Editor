@@ -451,7 +451,7 @@ function parseGather(d, m){
         pp += 24;
       }
     }
-    m.gatherAreas.push({areaId:i, ptr:areaPtr, points});
+    m.gatherAreas.push({areaId:i, ptr:areaPtr, points, origNodeCount:points.length});
   }
 }
 
@@ -1161,8 +1161,14 @@ function f1LootSetOpts(sel){
   for(let i=0;i<672;i++){
     const s = F1_GATHER_SETS[i];
     let label = '#'+i;
-    if(s && s.length) label += ' — ' + s.slice(0,3).map(e=>(F1_ITEM_LIST[e[0]]||'?')+' '+e[1]+'%').join(', ') + (s.length>3?' …':'');
-    h+=`<option value="${i}"${i===sel?' selected':''}>${label}</option>`;
+    let full = '';
+    if(s && s.length){
+      const parts = s.map(e=>(F1_ITEM_LIST[e[0]]||'?')+' '+e[1]+'%');
+      full = parts.join(', ');
+      label += ' — ' + (parts.length>3 ? parts.slice(0,3).join(', ')+' …(+'+(parts.length-3)+')' : full);
+    }
+    const esc = full.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    h+=`<option value="${i}"${i===sel?' selected':''} data-full="${esc}">${label}</option>`;
   }
   return h;
 }
@@ -1540,36 +1546,27 @@ function patchF1InPlace(m) {
     w32(0x14, qaOff);
   }
 
-  // Gathering — rebuild and append at end only when dirty
+  // Gathering — edit existing nodes in-place (no append, no pointer changes)
   if (isDirty) {
-    const gatherOff = d.length;
-    const gatherHeader = new Uint8Array(92*4);
-    const gv = new DataView(gatherHeader.buffer);
-    appendData(gatherHeader);
-
-    for (let i = 0; i < 92; i++) {
-      const a = m.gatherAreas.find(a => a.areaId === i);
-      if (!a || !a.points.length) {
-        gv.setUint32(i*4, 0, true);
-        continue;
+    for (const a of m.gatherAreas) {
+      if (!a.ptr || a.ptr >= d.length || !a.points.length) continue;
+      for (let j = 0; j < a.points.length; j++) {
+        const o = a.ptr + j * 24;
+        if (o + 23 >= d.length) break;
+        const p = a.points[j];
+        wf32(o, p.x); wf32(o+4, p.y); wf32(o+8, p.z); wf32(o+12, p.range);
+        w16(o+16, p.collectId); w16(o+18, p.freqLimit);
+        w16(o+20, p.type); w16(o+22, p.unk);
       }
-      const ptOff = d.length;
-      gv.setUint32(i*4, ptOff, true);
-      const ad = new Uint8Array(a.points.length * 24 + 24);
-      const adv = new DataView(ad.buffer);
-      a.points.forEach((p, j) => {
-        const o = j * 24;
-        adv.setFloat32(o, p.x, true); adv.setFloat32(o+4, p.y, true);
-        adv.setFloat32(o+8, p.z, true); adv.setFloat32(o+12, p.range, true);
-        adv.setUint16(o+16, p.collectId, true); adv.setUint16(o+18, p.freqLimit, true);
-        adv.setUint16(o+20, p.type, true); adv.setUint16(o+22, p.unk, true);
-      });
-      adv.setUint32(a.points.length * 24, 0xBF800000, true);
-      appendData(ad);
+      // Write terminator after last node if user reduced node count
+      if (a.points.length < (a.origNodeCount || 0)) {
+        const termOff = a.ptr + a.points.length * 24;
+        if (termOff + 23 < d.length) {
+          w32(termOff, 0xBF800000);
+          for (let b = 4; b < 24; b++) d[termOff + b] = 0;
+        }
+      }
     }
-    // Write the header back (with pointers filled in)
-    for (let i = 0; i < gatherHeader.length; i++) d[gatherOff + i] = gatherHeader[i];
-    w32(0x20, gatherOff);
   }
 
   // Language texts — append new language commBlocks+strings at end

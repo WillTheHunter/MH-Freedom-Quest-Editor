@@ -1339,7 +1339,7 @@ function upgradeSelectsToCombo(){
     function cacheOpts(){
       realOpts = Array.from(sel.options)
         .filter(o => o.value!=='__search__' && o.value!=='custom')
-        .map(o => ({v:o.value, t:o.textContent, d:o.disabled}));
+        .map(o => ({v:o.value, t:o.textContent, s:o.dataset.full||o.textContent, d:o.disabled}));
     }
 
     function openSearch(){
@@ -1358,7 +1358,7 @@ function upgradeSelectsToCombo(){
       let count = 0, hilite = -1;
       realOpts.forEach((o,i) => {
         if(o.d) return;
-        if(lq && !o.t.toLowerCase().includes(lq)) return;
+        if(lq && !o.s.toLowerCase().includes(lq) && !o.t.toLowerCase().includes(lq)) return;
         const row = document.createElement('div');
         row.textContent = o.t;
         row.dataset.val = o.v;
